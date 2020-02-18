@@ -1,0 +1,7 @@
+first
+pyee
+aiohttp<4.0
+slackclient>2.0
+requests
+toml
+flask
