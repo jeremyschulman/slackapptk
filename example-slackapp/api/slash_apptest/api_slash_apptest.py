@@ -19,25 +19,23 @@ from slack.web.classes import (
     extract_json
 )
 
-from slackapp2pyez import RequestEvent, ResponseMessage
+from slackapp2pyez import Request, Response
 from slackapp2pyez import ui
 
 from blueprint import blueprint
 from app_data import slackapp
+from api.slash_apptest import slashcli
 
-_g_slash_command = slackapp.add_slash_command(
-    cmd='/apptest', description='Test app components')
-
-SESSION_KEY = _g_slash_command.cmd
+SESSION_KEY = slashcli.cmd
 
 
-@blueprint.route("/slack/command/apptest", methods=['POST'])
+@blueprint.route(f"/slack/command/{slashcli.cmd}", methods=['POST'])
 def slackcmd_apptest():
 
     # clear the active command for the User if one exists, and
     # then setup the session data for use.
 
-    rqst = RequestEvent(app=slackapp, rqst_data=request.form)
+    rqst = Request(app=slackapp, request=request)
 
     # -------------------------------------------------------------------------
     # if the user provide more than just the slash command, process the
@@ -46,7 +44,7 @@ def slackcmd_apptest():
     # -------------------------------------------------------------------------
 
     if len(rqst.argv):
-        return _g_slash_command.run(rqst)
+        return slashcli.run(rqst)
 
     # -------------------------------------------------------------------------
     # if the User did not provide a specific test option, then we need to send
@@ -63,11 +61,11 @@ def slackcmd_apptest():
 
     @rqst.app.ui.imsg_attch.on(event_id)
     def on_command_selected(on_rqst, action):
-        return _g_slash_command.run(on_rqst, event=action.value)
+        return slashcli.run(on_rqst, event=action.value)
 
     # Now build the the response message and send the response message.
 
-    resp = ResponseMessage(rqst)
+    resp = Response(rqst)
 
     resp.text = (
         f"Hi <@{rqst.user_id}>, I see you'd like to run a test command.\n"
@@ -85,7 +83,7 @@ def slackcmd_apptest():
                     text='commands ...',
                     options=[
                         objects.Option(label=option, value=command_id)
-                        for command_id, option in _g_slash_command.get_command_options().items()
+                        for command_id, option in slashcli.get_command_options().items()
                     ])]
         )
     ])

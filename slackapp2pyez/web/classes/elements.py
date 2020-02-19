@@ -15,7 +15,8 @@ from slack.web.classes.elements import (
 
 __all__ = [
     'PlainTextElement',
-    'MultiSelectElement'
+    'MultiSelectElement',
+    "CheckboxElement"
 ]
 
 

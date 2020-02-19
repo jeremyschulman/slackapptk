@@ -12,12 +12,16 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import time
+import hmac
+import hashlib
 import json
+
 from first import first
 import pyee
 from slack import WebClient
 
-from slackapp2pyez.request import RequestEvent
+from slackapp2pyez.request import Request
 from slackapp2pyez.log import create_logger
 from slackapp2pyez.config import SlackAppConfig
 from slackapp2pyez import ui
@@ -69,8 +73,8 @@ class SlackApp(object):
 
         self.config = SlackAppConfig()
 
-    def RequestEvent(self, form_data):
-        return RequestEvent(app=self, rqst_data=form_data)
+    def RequestEvent(self, request):
+        return Request(app=self, request=request)
 
     def Client(self, channel=None, chan_id=None, as_bot=False):
         """
@@ -106,7 +110,7 @@ class SlackApp(object):
     # Request handlers - per payload
     # -------------------------------------------------------------------------
 
-    def handle_interactive_request(self, form_data):
+    def handle_interactive_request(self, request):
         """
         This method should be called by the API route handler bound to the
         Interactive Compenents, Interactivity "Request URL" configured
@@ -118,10 +122,7 @@ class SlackApp(object):
 
         Parameters
         ----------
-        form_data : dict
-            The REST payload data provided in the received message from
-            the api.slack.com system.  The payload data is provided as
-            the "form data" of the payload.
+        request : flask.request
 
         Returns
         -------
@@ -131,7 +132,7 @@ class SlackApp(object):
             If there is no dict-data, then return empty-string, which is required
             by the api.slack.com for response.
         """
-        rqst = RequestEvent(app=self, rqst_data=form_data)
+        rqst = Request(app=self, request=request)
         self.log.debug("PAYLOAD>> {}\n".format(json.dumps(rqst.payload, indent=3)))
         p_type = rqst.payload['type']
         return self._ia_payload_hanlder[p_type](rqst) or ""
@@ -190,7 +191,7 @@ class SlackApp(object):
 
         Parameters
         ----------
-        rqst : RequestEvent
+        rqst : Request
 
         Notes
         -----
@@ -201,7 +202,7 @@ class SlackApp(object):
         None
             If no callback is bound to the block ID
         dict
-            ResponseMessage message to send back to api.slack.com
+            Response message to send back to api.slack.com
         """
         payload_action = first(rqst.payload['actions'])
         event = payload_action['block_id']
@@ -262,3 +263,38 @@ class SlackApp(object):
             self.log.error("SlackApp ERROR>>\n{}\n".format(emsg))
 
         raise exc
+
+    def verify_request(self, request) -> bool:
+        """
+        This function validates the received using the process described
+        https://api.slack.com/docs/verifying-requests-from-slack and
+        using the code in https://github.com/slackapi/python-slack-events-api
+
+        Parameters
+        ----------
+        signature: str
+        request : flask.request
+
+        Returns
+        -------
+        bool
+            True if signature is validated
+            False otherwise
+        """
+        timestamp = request.headers['X-Slack-Request-Timestamp']
+
+        if abs(time.time() - int(timestamp)) > 60 * 5:
+            # The request timestamp is more than five minutes from local time.
+            # It could be a replay attack, so let's ignore it.
+            return False
+
+        signature = request.headers['X-Slack-Signature']
+
+        req = str.encode('v0:' + str(timestamp) + ':') + request.get_data()
+
+        request_hash = 'v0=' + hmac.new(
+            str.encode(self.config.signing_secret),
+            req, hashlib.sha256
+        ).hexdigest()
+
+        return hmac.compare_digest(request_hash, signature)

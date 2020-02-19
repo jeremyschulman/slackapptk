@@ -14,7 +14,5 @@
 
 from . import api_request
 from . import api_slash_ping
-from . import api_slash_apptest
-
-from . import apptest
+from . import slash_apptest
 

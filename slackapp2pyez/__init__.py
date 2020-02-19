@@ -13,5 +13,5 @@
 #  limitations under the License.
 
 from slackapp2pyez.app import SlackApp
-from slackapp2pyez.request import RequestEvent
-from slackapp2pyez.response import ResponseMessage
+from slackapp2pyez.request import Request
+from slackapp2pyez.response import Response

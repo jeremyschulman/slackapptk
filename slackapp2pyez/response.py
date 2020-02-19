@@ -18,13 +18,13 @@ from collections import UserDict
 from slack.web.classes.blocks import SectionBlock
 
 
-__all__ = ['ResponseMessage']
+__all__ = ['Response']
 
 
-class ResponseMessage(UserDict):
+class Response(UserDict):
 
     def __init__(self, rqst):
-        super(ResponseMessage, self).__init__()
+        super(Response, self).__init__()
         self.app = rqst.app
         self.rqst = rqst
         self.text = None
@@ -85,11 +85,6 @@ class ResponseMessage(UserDict):
         ----------------
         Any additional message body parameters not already set in the response
         object.
-
-        Raises
-        ------
-        SlackAppApiError
-            Upon failure sending message to Slack API
         """
         _text = text or self.text
         if _text:

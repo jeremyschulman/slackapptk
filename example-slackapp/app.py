@@ -15,9 +15,10 @@
 import logging
 from importlib import import_module
 
-from flask import jsonify
+from flask import jsonify, request
 from blueprint import blueprint
 from slack.web.classes.blocks import SectionBlock
+
 from slackapp2pyez.exceptions import SlackAppError
 from slackapp2pyez.sessions import SlackAppSessionInterface
 
@@ -40,11 +41,11 @@ def create_app():
     slackapp.log.setLevel(logging.DEBUG)
 
     sessiondb_path = slackapp.config['sessions']['path']
-    app.session_interface = SlackAppSessionInterface(sessiondb_path)
 
-    # channel_id = first(slackapp.config.channels)
-    # secret = slackapp.config.channels[channel_id]['signing_secret']
-    # create_event_adapter(flaskapp=app, secret=secret)
+    app.session_interface = SlackAppSessionInterface(
+        signing_secret=slackapp.config.signing_secret,
+        directory=sessiondb_path
+    )
 
     # -------------------------------------------------------------------------
     # now register all the API routes and Slack event handlers

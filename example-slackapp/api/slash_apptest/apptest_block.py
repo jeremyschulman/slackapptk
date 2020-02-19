@@ -5,11 +5,9 @@ from slack.web.classes import (
     blocks, elements
 )
 
-from app_data import slackapp
+from api.slash_apptest import slashcli
 
-_g_slash_command = slackapp.slash_commands['/apptest']
-
-cmd = _g_slash_command.add_command_option(
+cmd = slashcli.add_command_option(
     'block', parser_spec=dict(
         help='Run the block test example',
         description='Block test'
@@ -26,13 +24,13 @@ def session_init():
     session[SESSION_KEY]['params'] = {}
 
 
-@_g_slash_command.cli.on(cmd.prog)
+@slashcli.cli.on(cmd.prog)
 def slash_main(rqst, params):
     session_init()
     return main(rqst)
 
 
-@_g_slash_command.ui.on(cmd.prog)
+@slashcli.ui.on(cmd.prog)
 def ui_main(rqst):
     session_init()
     return main(rqst)

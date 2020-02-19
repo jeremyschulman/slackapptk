@@ -12,6 +12,8 @@ class SlackAppConfig(UserDict):
     def __init__(self):
         super(SlackAppConfig, self).__init__()
         self.channels = None
+        self.signing_secret = None
+        self.token = None
 
     def from_obj(self, obj):
         # store the config file data into the object as dict
@@ -22,16 +24,14 @@ class SlackAppConfig(UserDict):
         # channel config.
 
         self.channels = {_chan['id']: _chan
-                         for _chan in self['channel']}
+                         for _chan in self['channels']}
 
-        self['ALL_SLACK_VERIFY_TOKENS'] = [
-            _chan['verify_token']
-            for _chan in self['channel']
-        ]
+        self.signing_secret = obj['app']['signing_secret']
+        self.token = obj['bot']['token']
 
         self['SLACK_CHANNEL_NAME_TO_ID'] = {
             _chan['name']: _chan['id']
-            for _chan in self['channel']
+            for _chan in self['channels']
         }
 
     def from_envar(self, envar):

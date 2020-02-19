@@ -69,6 +69,6 @@ You should see output similar to this:
 You can then go to your Slack client and issue the "/ngrok" command.  You
 should see a response that says "Hi There!  You are <your-user name>!" and then
 two buttons.  You can press a button and see the response.  The code for pressing the "/ngrok"
-command can be found in the [api_ngrok.py](api/api_slash_apptest.py) file.
+command can be found in the [api_ngrok.py](api/slash_apptest/api_slash_apptest.py) file.
 
 Good luck and have fun!

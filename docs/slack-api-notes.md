@@ -129,7 +129,7 @@ Request.json ==>
 ````
 
 
-Interactive Message ResponseMessage
+Interactive Message Response
 ----------------------------
 ```json
 {

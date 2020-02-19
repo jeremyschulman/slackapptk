@@ -3,9 +3,8 @@ from flask import Flask
 from slackapp2pyez.app import SlackApp
 
 
-slackapp = SlackApp()
-
 flaskapp = Flask(__package__)
+slackapp = SlackApp()
 
 
 # class MyEventAdapter(SlackEventAdapter):

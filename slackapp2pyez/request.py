@@ -20,22 +20,20 @@ from first import first
 from flask import session
 from slack import WebClient
 
-from slackapp2pyez.response import ResponseMessage
+from slackapp2pyez.response import Response
 from slackapp2pyez.exceptions import SlackAppError
 
-__all__ = ['RequestEvent']
+__all__ = ['Request']
 
 
-class RequestEvent(object):
-    def __init__(self, app, rqst_data):
+class Request(object):
+
+    def __init__(self, app, request):
+
         self.app = app
-        self.rqst_data = rqst_data
-
+        self.rqst_data = request.form
         self.rqst_type = session['rqst_type']
         self.user_id = session['user_id']
-
-        channel_config = first(app.config.channels.values())
-        self.channel = channel_config['id']
 
         if self.rqst_type == 'command':
             self.channel = self.rqst_data["channel_id"]
@@ -63,6 +61,7 @@ class RequestEvent(object):
 
             if 'view' in self.payload:
                 self.view = self.payload['view']
+                self.view_id = self.view['id']
                 self.view_state_values = self.view['state']['values']
                 self.view_hash = self.view['hash']
                 self.private_metadata = json.loads(self.view.get('private_metadata') or '{}')
@@ -73,21 +72,23 @@ class RequestEvent(object):
             )
             return
 
-        if self.channel not in app.config.channels:
-            msg = "Unable to execute the Request in this channel."
-            app.log.error(msg)
-            raise SlackAppError("Unable to execute the Request in this channel", 401, self)
+        # if this request originated with a channel ID value, then make sure it
+        # is valid for this channel based on the app configuration.  Note that
+        # Modal requests do not have channel ID values.
 
-        # hardcoding v--- for testing
-        self.bot = False
-        self.client = WebClient(token=channel_config['oauth_token'])
+        if hasattr(self, 'channel') and self.channel not in app.config.channels:
+            msg = f"Unable to execute the Request in this channel: {self.channel}"
+            app.log.error(msg)
+            raise SlackAppError(msg, 401, self)
+
+        self.client = WebClient(token=self.app.config['bot']['token'])
 
     def ResponseMessage(self):
         """
-        Return a Slack ResponseMessage instance based on the current Slack Request
+        Return a Slack Response instance based on the current Slack Request
         """
 
-        return ResponseMessage(rqst=self)
+        return Response(rqst=self)
 
     def delete(self):
         """

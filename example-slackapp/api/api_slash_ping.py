@@ -1,5 +1,6 @@
 import json
 
+from first import first
 from flask import request
 from blueprint import blueprint
 from app_data import slackapp
@@ -7,9 +8,14 @@ from app_data import slackapp
 
 @blueprint.route("/slack/command/ping", methods=['POST'])
 def slackcmd_ping():
-    rqst = slackapp.RequestEvent(request.form)
+    rqst = slackapp.RequestEvent(request)
+
     resp = rqst.ResponseMessage()
-    res = resp.send_ephemeral("pong")
+
+    if first(rqst.argv, '') == 'public':
+        res = resp.send_public('public pong')
+    else:
+        res = resp.send_ephemeral("private pong")
 
     if not res.get('ok'):
         slackapp.log.error(
