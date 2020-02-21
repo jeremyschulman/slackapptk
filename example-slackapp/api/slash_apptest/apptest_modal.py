@@ -8,13 +8,25 @@
 import json
 from flask import session
 
-from slack.web.classes import (
-    extract_json,
-    blocks, elements,
-    objects
+from slack.web.classes.blocks import (
+    SectionBlock
 )
 
-from slackapp2pyez.web.classes.blocks import InputBlock
+from slack.web.classes.elements import (
+    ButtonElement, Option,
+    DatePickerElement, SelectElement
+)
+
+# The following are "missing" from the slackclient package, so implemented
+# these using their SDK.  Hopefully these widgets will be availbale in a near
+# term future release.
+
+from slackapp2pyez.web.classes.blocks import (
+    InputBlock
+)
+
+from slackapp2pyez.web.classes.modal import Modal
+
 from slackapp2pyez.web.classes.elements import (
     MultiSelectElement,
     PlainTextElement,
@@ -59,16 +71,7 @@ def main(rqst):
 
     rqst.delete()
 
-    event_id = cmd.prog + ".modal"
-
-    action_ids = params['action_ids'] = {}
-    action_ids['text1'] = event_id + ".input1"
-    action_ids['text2'] = event_id + ".input2"
-    action_ids['datepick'] = event_id + ".datepick"
-    action_ids['button1'] = event_id + ".button1"
-    action_ids['checkbox'] = event_id + ".checkbox"
-    action_ids['select1'] = event_id + ".select1"
-    action_ids['selectN'] = event_id + ".selectN"
+    event_id = cmd.prog + ".view1"
 
     slackapp.ui.modal.on(event_id, on_main_modal_submit)
 
@@ -77,149 +80,171 @@ def main(rqst):
         'state': "NC"
     }
 
-    resp = rqst.ResponseMessage()
+    modal = Modal(title='Ohai Modal!',
+                  callback_id=event_id,
+                  close='Cacel',
+                  submit='Next',
+                  private_metadata=priv_data)
 
-    pto_dfs = objects.PlainTextObject.direct_from_string
+    # -------------------------------------------------------------------------
+    # Create a button block:
+    # Each time the User clicks it a counter will be incremented by 1.
+    # -------------------------------------------------------------------------
 
-    resp['type'] = 'modal'
-    resp['title'] = pto_dfs('Ohai Modal!')
-    resp['close'] = pto_dfs('Cancel')
-    resp['submit'] = pto_dfs('Next')
-    resp['callback_id'] = event_id
-    resp['private_metadata'] = json.dumps(priv_data)
+    button1 = modal.add_block(SectionBlock(
+        text="It's Block Kit...but _in a modal_",
+        block_id=event_id + ".button1"))
 
-    checkbox_options = [
-        elements.Option(label='Box 1', value='A1'),
-        elements.Option(label='Box 2', value='B2')
-    ]
+    button1.accessory = ButtonElement(
+        text='Click me', value='0',
+        action_id=button1.block_id,
+        style='danger'
+    )
 
     params['clicks'] = 0
-    params['checkboxes'] = checkbox_options[0].value
 
-    @slackapp.ui.block_action.on(action_ids['button1'])
+    @slackapp.ui.block_action.on(button1.block_id)
     def remember_button(_onb, action):
         _params = session[SESSION_KEY]['params']
         _params['clicks'] += 1
 
-    @slackapp.ui.block_action.on(action_ids['checkbox'])
+    # -------------------------------------------------------------------------
+    # Create a Checkboxes block:
+    # When the User checks/unchecks the items, they are stored to the session.
+    # -------------------------------------------------------------------------
+
+    checkbox_options = [
+        Option(label='Box 1', value='A1'),
+        Option(label='Box 2', value='B2')
+    ]
+
+    params['checkboxes'] = checkbox_options[0].value
+
+    checkbox = modal.add_block(SectionBlock(
+        text='Nifty checkboxes',
+        block_id=event_id + ".checkbox"))
+
+    checkbox.accessory = CheckboxElement(
+            action_id=checkbox.block_id,
+            options=checkbox_options,
+            initial_options=[checkbox_options[0]]
+        )
+
+    @slackapp.ui.block_action.on(checkbox.block_id)
     def remember_check(_oncb, action):
         _params = session[SESSION_KEY]['params']
         _params['checkboxes'] = action.value
 
-    resp['blocks'] = extract_json([
-        blocks.SectionBlock(
-            text="It's Block Kit...but _in a modal_",
-            accessory=elements.ButtonElement(
-                text='Click me', value='0',
-                action_id=action_ids['button1'],
-                style='danger'
-            )
-        ),
-        blocks.SectionBlock(
-            text='Nifty checkboxes',
-            accessory=CheckboxElement(
-                action_id=action_ids['checkbox'],
-                options=checkbox_options,
-                initial_options=[checkbox_options[0]]
-            )
-        ),
-        InputBlock(
-            label='First input',
-            element=PlainTextElement(
-                action_id=action_ids['text1'],
-                placeholder='Type in here'
-            )
-        ),
-        InputBlock(
-            label='Next input',
-            optional=True,
-            element=PlainTextElement(
-                action_id=action_ids['text2'],
-                multiline=True,
-                max_length=500
-            )
-        ),
-        InputBlock(
-            label="Pick a date",
-            element=elements.DatePickerElement(
-                action_id=action_ids['datepick'],
-                placeholder='A date'
-            )
-        ),
-        InputBlock(
-            label="Select one option",
-            optional=True,
-            element=elements.SelectElement(
-                placeholder='Select one of ...',
-                action_id=action_ids['select1'],
-                options=[
-                    elements.Option(label='this', value='this'),
-                    elements.Option(label='that', value='that')
-                ]
-            )
-        ),
-        InputBlock(
-            label="Select many option",
-            element=MultiSelectElement(
-                placeholder='Select any of ...',
-                action_id=action_ids['selectN'],
-                options=[
-                    elements.Option(label='cat', value='cat'),
-                    elements.Option(label='dog', value='dog'),
-                    elements.Option(label='monkey', value='monkey')
-                ]
-            )
+    # -------------------------------------------------------------------------
+    # Create an Input block:
+    # Required single line of text.
+    # -------------------------------------------------------------------------
+
+    modal.add_block(InputBlock(
+        label='First input',
+        element=PlainTextElement(
+            action_id=event_id + ".text1",
+            placeholder='Type in here'
         )
+    ))
 
-    ])
+    # -------------------------------------------------------------------------
+    # Create an Input block:
+    # Optional multi-line text area, maximum 500 characters.
+    # -------------------------------------------------------------------------
 
-    res = resp.client.views_open(trigger_id=rqst.trigger_id,
-                                 view=dict(resp))
+    modal.add_block(InputBlock(
+        label='Next input',
+        optional=True,
+        element=PlainTextElement(
+            action_id=event_id + ".text2",
+            multiline=True,
+            max_length=500
+        )
+    ))
 
+    # -------------------------------------------------------------------------
+    # Create an Input Datepicker block
+    # -------------------------------------------------------------------------
+
+    modal.add_block(InputBlock(
+        label="Pick a date",
+        element=DatePickerElement(
+            action_id=event_id + ".datepicker",
+            placeholder='A date'
+        )
+    ))
+
+    # -------------------------------------------------------------------------
+    # Create an Input to select from static list, optional.
+    # -------------------------------------------------------------------------
+
+    modal.add_block(InputBlock(
+        label="Select one option",
+        optional=True,
+        element=SelectElement(
+            placeholder='Select one of ...',
+            action_id=event_id + ".select_1",
+            options=[
+                Option(label='this', value='this'),
+                Option(label='that', value='that')
+            ]
+        )
+    ))
+
+    # -------------------------------------------------------------------------
+    # Create an Input to allow the User to select multiple items
+    # from a static list.
+    # -------------------------------------------------------------------------
+
+    modal.add_block(InputBlock(
+        label="Select many option",
+        element=MultiSelectElement(
+            placeholder='Select any of ...',
+            action_id=event_id + ".select_N",
+            options=[
+                Option(label='cat', value='cat'),
+                Option(label='dog', value='dog'),
+                Option(label='monkey', value='monkey')
+            ]
+        )
+    ))
+
+    res = modal.open(rqst, callback=on_main_modal_submit)
     if not res.get('ok'):
         slackapp.log.error(json.dumps(res, indent=3))
 
 
 def on_main_modal_submit(rqst, input_values):
     params = session[SESSION_KEY]['params']
-    action_ids = params['action_ids']
+    
+    # The input_values is a dictionary of key=action_id and value=user-input
+    # since all action_id are formulated with dots (.), just use the
+    # last token as the variable name when form
 
-    results = dict(
-        text1=input_values[action_ids['text1']],
-        text2=input_values[action_ids['text2']],
-        datepick=input_values[action_ids['datepick']],
+    results = {
+        k.rpartition('.')[-1]: v
+        for k, v in input_values.items()
+    }
+
+    results.update(dict(
         clicks=params['clicks'],
         checkboxes=params['checkboxes'],
-        select1=input_values[action_ids['select1']],
-        selectn=input_values[action_ids['selectN']]
+    ))
+
+    modal = Modal(
+        title='Modal Results',
+        close='Back',
+        submit='Done',
+        callback_id=cmd.prog + '.modal.last',
+        blocks=[
+            SectionBlock(
+                text="Input results in raw JSON"
+            ),
+            SectionBlock(
+                text="```" + json.dumps(results, indent=3) + "```"
+            )
+        ]
     )
 
-    resp = rqst.ResponseMessage()
-
-    pto_dfs = objects.PlainTextObject.direct_from_string
-
-    event_id = cmd.prog + '.modal.last'
-
-    resp['type'] = 'modal'
-    resp['title'] = pto_dfs('Modal Results')
-    resp['close'] = pto_dfs('Back')
-    resp['submit'] = pto_dfs('Done')
-    resp['callback_id'] = event_id
-
-    resp['blocks'] = extract_json([
-        blocks.SectionBlock(
-            text="Input results in raw JSON"
-        ),
-        blocks.SectionBlock(
-            text="```" + json.dumps(results, indent=3) + "```"
-        )
-    ])
-
-    slackapp.ui.modal.on(event_id, on_review_modal)
-
-    return dict(response_action='push', view=dict(resp))
-
-
-def on_review_modal(rqst, input_value):
-    # return
-    return {"response_action": "clear"}
+    return modal.push(rqst, callback=lambda *a: Modal.clear_all())

@@ -1,11 +1,17 @@
 from flask import session
 
-from slack.web.classes import (
-    extract_json,
-    blocks, elements
+from slack.web.classes import extract_json
+from slack.web.classes.blocks import (
+    SectionBlock,
+    ActionsBlock,
+    DividerBlock
+)
+from slack.web.classes.elements import (
+    ButtonElement
 )
 
 from api.slash_apptest import slashcli
+from slackapp2pyez import Response
 
 cmd = slashcli.add_command_option(
     'block', parser_spec=dict(
@@ -37,31 +43,31 @@ def ui_main(rqst):
 
 
 def main(rqst):
-    resp = rqst.ResponseMessage()
+    resp = Response(rqst)
 
     block_id = SESSION_KEY + '.main.button'
 
     @rqst.app.ui.block_action.on(block_id)
-    def _on_button(onb_rqst, action):
+    def _on_button(_rqst, action):
         """ this function will be called when the User clicks on the of buttons defined """
-        onb_resp = onb_rqst.ResponseMessage()
-        onb_resp.send(f"At time {action.data['action_ts']}, you pressed: {action.value}")
+        _resp = Response(_rqst)
+        _resp.send(f"At time {action.data['action_ts']}, you pressed: {action.value}")
 
     user_id = rqst.user_id
 
     resp['blocks'] = extract_json([
-        blocks.SectionBlock(text='Hi There!'),
-        blocks.SectionBlock(text=f'You are <@{user_id}>'),
-        blocks.DividerBlock(),
-        blocks.ActionsBlock(
+        SectionBlock(text='Hi There!'),
+        SectionBlock(text=f'You are <@{user_id}>'),
+        DividerBlock(),
+        ActionsBlock(
             block_id=block_id,
             elements=[
-                elements.ButtonElement(
+                ButtonElement(
                     text='Press for Bad',
                     style='danger',
                     action_id=f'{block_id}.bad',
                     value='bad'),
-                elements.ButtonElement(
+                ButtonElement(
                     text='Press for Good',
                     style="primary",
                     action_id=f'{block_id}.good',
@@ -69,7 +75,9 @@ def main(rqst):
             ]
 
         ),
-        blocks.DividerBlock()
+        DividerBlock()
     ])
 
-    resp.send().raise_for_status()
+    res = resp.send()
+    if not res.ok:
+        rqst.app.log.error(res.text)

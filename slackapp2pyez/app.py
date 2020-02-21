@@ -15,18 +15,17 @@
 import time
 import hmac
 import hashlib
-import json
 
 from first import first
 import pyee
 from slack import WebClient
 
-from slackapp2pyez.request import Request
+from slackapp2pyez.request import OptionSelectRequest, InteractiveRequest
 from slackapp2pyez.log import create_logger
 from slackapp2pyez.config import SlackAppConfig
 from slackapp2pyez import ui
 from slackapp2pyez.cli import SlashCommandCLI
-
+from slackapp2pyez.exceptions import SlackAppError
 
 __all__ = ['SlackApp']
 
@@ -38,6 +37,7 @@ class SlackAppUIEventHandlers(object):
         self.dialog = pyee.EventEmitter()
         self.imsg_attch = pyee.EventEmitter()
         self.modal = pyee.EventEmitter()
+        self.ext_select = pyee.EventEmitter()
 
 
 class SlackApp(object):
@@ -73,10 +73,7 @@ class SlackApp(object):
 
         self.config = SlackAppConfig()
 
-    def RequestEvent(self, request):
-        return Request(app=self, request=request)
-
-    def Client(self, channel=None, chan_id=None, as_bot=False):
+    def Client(self, channel=None, chan_id=None):
         """
         Create a Slack Web Client instance based on the SlackApp configuration
         or provided parameters.  This is generally used for test and debug
@@ -86,25 +83,14 @@ class SlackApp(object):
         ----------
         channel
         chan_id
-        as_bot
 
         Returns
         -------
         WebClient
-            The Slack WebClient instance that is used for api.slac.com
+            The Slack WebClient instance that is used for api.slack.com
             communicaiton purposes.
         """
-        # need the channel ID to assocaite this SlackApp.  If one was provided
-        # use it, or if the channle name was provided use that, or use the
-        # first channel in the channels configured list.
-
-        chan_id = (chan_id or (
-            self.config['SLACK_CHANNEL_NAME_TO_ID'][channel] if channel
-            else first(self.config.channels)))
-
-        chan_cfg = self.config.channels[chan_id]
-        token = chan_cfg['oauth_token' if not as_bot else 'bot_oauth_token']
-        return WebClient(token=token)
+        return WebClient(token=self.config.token)
 
     # -------------------------------------------------------------------------
     # Request handlers - per payload
@@ -132,10 +118,33 @@ class SlackApp(object):
             If there is no dict-data, then return empty-string, which is required
             by the api.slack.com for response.
         """
-        rqst = Request(app=self, request=request)
-        self.log.debug("PAYLOAD>> {}\n".format(json.dumps(rqst.payload, indent=3)))
+        rqst = InteractiveRequest(app=self, request=request)
+        if not rqst:
+            raise SlackAppError(
+                f'Unknown request type'
+            )
+
         p_type = rqst.payload['type']
         return self._ia_payload_hanlder[p_type](rqst) or ""
+
+    def handle_select_request(self, request):
+        rqst = OptionSelectRequest(app=self, request=request)
+        event = rqst.block_id
+
+        callback = first(self.ui.ext_select.listeners(event))
+        if not callback:
+            msg = f"No handler for ext selector event: {event}"
+            self.log.error(msg)
+            return
+
+        action = ui.ActionEvent(
+            type=rqst.rqst_type,
+            id=rqst.action_id,
+            value=rqst.value,
+            data={}
+        )
+
+        return callback(rqst, action)
 
     # -------------------------------------------------------------------------
     # PRIVATE Request handlers - per payload type
@@ -177,7 +186,7 @@ class SlackApp(object):
         return callback(rqst, input_values)
 
     # -------------------------------------------------------------------------
-    # PRIVATE Request handlers - per payload type
+    # PRIVATE request handlers - per payload type
     # -------------------------------------------------------------------------
 
     def _handle_block_action(self, rqst):
@@ -272,7 +281,6 @@ class SlackApp(object):
 
         Parameters
         ----------
-        signature: str
         request : flask.request
 
         Returns

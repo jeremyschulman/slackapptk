@@ -12,7 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from . import api_request
+from . import api_slack
 from . import api_slash_ping
 from . import slash_apptest
 

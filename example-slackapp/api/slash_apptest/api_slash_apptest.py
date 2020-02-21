@@ -19,7 +19,7 @@ from slack.web.classes import (
     extract_json
 )
 
-from slackapp2pyez import Request, Response
+from slackapp2pyez import CommandRequest, Response
 from slackapp2pyez import ui
 
 from blueprint import blueprint
@@ -35,7 +35,7 @@ def slackcmd_apptest():
     # clear the active command for the User if one exists, and
     # then setup the session data for use.
 
-    rqst = Request(app=slackapp, request=request)
+    rqst = CommandRequest(app=slackapp, request=request)
 
     # -------------------------------------------------------------------------
     # if the user provide more than just the slash command, process the

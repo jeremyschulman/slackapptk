@@ -94,7 +94,7 @@ Slack Dialog Submit
    },
    "submission": {
       "location": "School",
-      "hostname": "closet-switch1",
+      "hostname": "closet-switch1"
    },
    "callback_id": "get-vlans-dialog",
    "response_url": "https://hooks.slack.com/app/<>",

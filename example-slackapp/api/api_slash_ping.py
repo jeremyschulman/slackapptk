@@ -1,16 +1,18 @@
 import json
 
-from first import first
 from flask import request
+from first import first
 from blueprint import blueprint
 from app_data import slackapp
+
+from slackapp2pyez import CommandRequest, Response
 
 
 @blueprint.route("/slack/command/ping", methods=['POST'])
 def slackcmd_ping():
-    rqst = slackapp.RequestEvent(request)
 
-    resp = rqst.ResponseMessage()
+    rqst = CommandRequest(slackapp, request)
+    resp = Response(rqst)
 
     if first(rqst.argv, '') == 'public':
         res = resp.send_public('public pong')

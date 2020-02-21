@@ -119,8 +119,13 @@ class SlackAppSessionInterface(SessionInterface):
             )
 
         r_form = request.form
-        err = False
         payload = None
+
+        def error():
+            print("HEADERS>> {}".format(json.dumps(dict(request.headers), indent=3)))
+            print("FORM>> {}".format(json.dumps(r_form, indent=3)))
+            print("JSON>> {}".format(json.dumps(request.json, indent=3)))
+            raise RuntimeError("Do not know this Slack API.")
 
         if 'payload' in r_form:
             payload = json.loads(r_form['payload'] or '{}')
@@ -137,21 +142,14 @@ class SlackAppSessionInterface(SessionInterface):
             elif 'type' in request.json:
                 return PickleCookieSession(self, request, app)
             else:
-                err = True
+                error()
         else:
-            err = True
-
-        if err:
-            print("HEADERS>> {}".format(json.dumps(dict(request.headers), indent=3)))
-            print("FORM>> {}".format(json.dumps(r_form, indent=3)))
-            print("JSON>> {}".format(json.dumps(request.json, indent=3)))
-            raise RuntimeError("Do not know this Slack API.")
+            error()
 
         session = PickleSlackSession(session_if=self, session_id=session_id)
-
         session['rqst_type'] = rqst_type
         session['user_id'] = session_id
-        session['payload'] = payload
+        session['payload'] = payload or {}
 
         return session
 

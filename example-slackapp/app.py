@@ -15,7 +15,7 @@
 import logging
 from importlib import import_module
 
-from flask import jsonify, request
+from flask import jsonify
 from blueprint import blueprint
 from slack.web.classes.blocks import SectionBlock
 

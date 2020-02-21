@@ -1,3 +1,4 @@
+import json
 from flask import session
 
 from slack.web.classes import (
@@ -5,7 +6,7 @@ from slack.web.classes import (
 )
 
 from api.slash_apptest.apptest_slashcli import slashcli
-
+from slackapp2pyez import Response
 
 cmd = slashcli.add_command_option(
     'dialog', parser_spec=dict(
@@ -37,9 +38,8 @@ def ui_main(rqst):
 
 
 def main(rqst):
+    resp = Response(rqst)
     rqst.delete()
-
-    resp = rqst.ResponseMessage()
 
     event_id = cmd.prog + ".dialog"
 
@@ -55,9 +55,12 @@ def main(rqst):
     res = resp.client.dialog_open(dialog=builder.to_dict(),
                                   trigger_id=rqst.trigger_id)
 
+    if not res.get('ok'):
+        rqst.app.log.error(json.dumps(res))
+
 
 def on_dialog_submit(rqst, submit):
-    resp = rqst.ResponseMessage()
+    resp = Response(rqst)
 
     resp['blocks'] = extract_json([
         blocks.SectionBlock(text=f"""

@@ -29,7 +29,7 @@ class BlockActionEvent(ActionEvent):
                 value=data.get('value') or a_id
             )
 
-        elif a_type == 'static_select':
+        elif a_type in ['static_select', 'external_select']:
             a_val = data['selected_option']['value']
             return ActionEvent(
                 type=a_type, data=data,
@@ -52,6 +52,11 @@ class BlockActionEvent(ActionEvent):
 
 
 class InteractiveMessageActionEvent(ActionEvent):
+    """
+    These types of events originate from the secondary attachments found in the
+    interactive message.  Generally speaking this mode of UI is being
+    depreciated in favor of using blocks for "All the Things".
+    """
     def __new__(cls, *args, **kwargs):
         action = args[0]
 

@@ -72,7 +72,7 @@ class SlashCommandCLI(object):
 
     @staticmethod
     def send_help_on_error(rqst, msg, helptext):
-        resp = rqst.ResponseMessage()
+        resp = rqst.Response()
 
         atts = resp['attachments'] = list()
         atts.append(dict(
@@ -102,7 +102,7 @@ class SlashCommandCLI(object):
 
     @staticmethod
     def send_help(rqst, helptext):
-        resp = rqst.ResponseMessage()
+        resp = rqst.Response()
         cmd_str = SlashCommandCLI.get_help_cmd_str(rqst)
         resp.send(
             f'Hi <@{rqst.user_id}>, here is help on the `{cmd_str}` command:\n\n'

@@ -21,11 +21,11 @@ _default_logfile = 'slackapp2pyez.log'
 _default_format = '%(asctime)s:%(levelname)s:%(message)s'
 
 
-def create_logger(format=None, logfile=None, stream=None):
+def create_logger(logformat=None, logfile=None, stream=None):
 
     log = logging.getLogger(__package__)
     log.setLevel(logging.INFO)
-    formatter = logging.Formatter(format or _default_format)
+    formatter = logging.Formatter(logformat or _default_format)
 
     fh = logging.FileHandler(logfile or _default_logfile)
     fh.setFormatter(formatter)

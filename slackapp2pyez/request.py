@@ -16,83 +16,162 @@
 
 import json
 
-from first import first
 from flask import session
 from slack import WebClient
 
 from slackapp2pyez.response import Response
 from slackapp2pyez.exceptions import SlackAppError
 
-__all__ = ['Request']
+__all__ = [
+    'CommandRequest',
+    'EventRequest',
+    'InteractiveRequest',
+    'OptionSelectRequest',
+    'Response'
+]
 
 
 class Request(object):
 
     def __init__(self, app, request):
-
         self.app = app
         self.rqst_data = request.form
         self.rqst_type = session['rqst_type']
         self.user_id = session['user_id']
-
-        if self.rqst_type == 'command':
-            self.channel = self.rqst_data["channel_id"]
-            self.user_name = self.rqst_data['user_name']
-            self.response_url = self.rqst_data['response_url']
-            self.trigger_id = self.rqst_data['trigger_id']
-            self.argv = self.rqst_data['text'].split()
-
-        elif self.rqst_type == 'event':
-            self.event = self.rqst_data['event']
-            self.user_id = self.event['user']
-            self.channel = self.event['channel']
-            self.text = self.event['text']
-            self.ts = self.event['ts']
-
-        elif session['payload']:
-            self.payload = session['payload']
-            self.trigger_id = self.payload.get('trigger_id')
-            self.user_name = self.payload['user']['name']
-
-            if 'channel' in self.payload:
-                self.channel = self.payload['channel']['id']
-                self.response_url = self.payload['response_url']
-                self.state = json.loads(self.payload.get('state') or '{}')
-
-            if 'view' in self.payload:
-                self.view = self.payload['view']
-                self.view_id = self.view['id']
-                self.view_state_values = self.view['state']['values']
-                self.view_hash = self.view['hash']
-                self.private_metadata = json.loads(self.view.get('private_metadata') or '{}')
-
-        else:
-            app.log.error(
-                f'Unhadled request type: {self.rqst_type}'
-            )
-            return
-
-        # if this request originated with a channel ID value, then make sure it
-        # is valid for this channel based on the app configuration.  Note that
-        # Modal requests do not have channel ID values.
-
-        if hasattr(self, 'channel') and self.channel not in app.config.channels:
-            msg = f"Unable to execute the Request in this channel: {self.channel}"
-            app.log.error(msg)
-            raise SlackAppError(msg, 401, self)
-
-        self.client = WebClient(token=self.app.config['bot']['token'])
-
-    def ResponseMessage(self):
-        """
-        Return a Slack Response instance based on the current Slack Request
-        """
-
-        return Response(rqst=self)
+        self.payload = session['payload']
+        self.response_url = self.payload.get('response_url')
+        self.trigger_id = self.payload.get('trigger_id')
+        self.client = None
 
     def delete(self):
         """
         This method will cause the original request message to be deleted in
         the Slack client.
         """
-        self.ResponseMessage().send(delete_original=True, replace_original=True)
+        Response(self).send(delete_original=True, replace_original=True)
+
+    def finalize(self):
+        # if this request originated with a channel ID value, then make sure it
+        # is valid for this channel based on the app configuration.  Note that
+        # Modal requests do not have channel ID values.
+
+        if hasattr(self, 'channel') and self.channel not in self.app.config.channels:
+            msg = f"Unable to execute the Request in this channel: {self.channel}"
+            self.app.log.error(msg)
+            raise SlackAppError(msg, 401, self)
+
+        self.client = WebClient(token=self.app.config['bot']['token'])
+
+
+class CommandRequest(Request):
+    def __init__(self, app, request):
+        super().__init__(app, request)
+        assert self.rqst_type == 'command'
+
+        self.trigger_id = self.rqst_data['trigger_id']
+        self.response_url = self.rqst_data['response_url']
+        self.channel = self.rqst_data["channel_id"]
+        self.user_name = self.rqst_data['user_name']
+        self.argv = self.rqst_data['text'].split()
+
+        self.finalize()
+
+
+class DialogRequest(Request):
+    def __init__(self, app, request):
+        super().__init__(app, request)
+        self.state = json.loads(self.payload.get('state') or '{}')
+        self.finalize()
+
+
+class EventRequest(Request):
+    def __init__(self, app, request):
+        super().__init__(app, request)
+        assert self.rqst_type == 'event'
+
+        self.event = self.rqst_data['event']
+        self.user_id = self.event['user']
+        self.channel = self.event['channel']
+        self.text = self.event['text']
+        self.ts = self.event['ts']
+
+        self.finalize()
+
+
+class OptionSelectRequest(Request):
+    def __init__(self, app, request):
+        super().__init__(app, request)
+        assert self.rqst_type == 'block_suggestion'
+
+        self.value = self.payload['value']
+        self.action_id = self.payload['action_id']
+        self.block_id = self.payload['block_id']
+
+        self.finalize()
+
+
+class ViewRequest(Request):
+    def __init__(self, app, request):
+        super().__init__(app, request)
+        self.user_name = self.payload['user']['name']
+
+        # view specific attributes
+
+        self.view = self.payload['view']
+        self.view_id = self.view['id']
+        self.view_state_values = self.view['state']['values']
+        self.view_hash = self.view['hash']
+        self.private_metadata = json.loads(self.view.get('private_metadata') or '{}')
+
+        self.finalize()
+
+
+class InteractiveMessageRequest(Request):
+    def __init__(self, app, request):
+        super().__init__(app, request)
+        self.user_name = self.payload['user']['name']
+        self.finalize()
+
+
+class BlockActionsRequest(Request):
+    def __init__(self, app, request):
+        super().__init__(app, request)
+        self.user_name = self.payload['user']['name']
+        self.trigger_id = self.payload['trigger_id']
+        container = self.payload['container']
+        c_type = container['type']
+        if c_type == 'view':
+            self.view = self.payload['view']
+        elif c_type == 'message':
+            self.channel = container['channel_id']
+        else:
+            app.log.error(
+                f'Unknown block action container type: {c_type}'
+            )
+            app.log.debug(json.dumps(self.payload, indent=3))
+
+        self.finalize()
+
+
+class InteractiveRequest(type):
+
+    RQST_TYPES = {
+        'block_actions': BlockActionsRequest,
+        'dialog_submission': DialogRequest,
+        'interactive_message': InteractiveMessageRequest,
+        'view_submission': ViewRequest,
+        'view_close': ViewRequest
+    }
+
+    def __new__(mcs, *args, **kwargs):
+        app, request = kwargs['app'], kwargs['request']
+        r_type = session['rqst_type']
+        r_cls = mcs.RQST_TYPES.get(r_type)
+
+        if not r_cls:
+            app.log.error(
+                f'Unhadled request type: {r_type}'
+            )
+            return None
+
+        return r_cls(app=app, request=request)
