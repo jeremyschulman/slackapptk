@@ -59,7 +59,7 @@ def slackcmd_apptest():
 
     event_id = SESSION_KEY + '.cmd'
 
-    @rqst.app.ui.imsg_attch.on(event_id)
+    @rqst.app.ic.imsg_attch.on(event_id)
     def on_command_selected(on_rqst, action):
         return slashcli.run(on_rqst, event=action.value)
 

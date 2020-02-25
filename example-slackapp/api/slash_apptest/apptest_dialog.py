@@ -6,7 +6,10 @@ from slack.web.classes import (
 )
 
 from api.slash_apptest.apptest_slashcli import slashcli
-from slackapp2pyez import Response
+from slackapp2pyez import (
+    Request, Response,
+    DialogRequest
+)
 
 cmd = slashcli.add_command_option(
     'dialog', parser_spec=dict(
@@ -37,13 +40,13 @@ def ui_main(rqst):
     return main(rqst)
 
 
-def main(rqst):
+def main(rqst: Request):
     resp = Response(rqst)
     rqst.delete()
 
     event_id = cmd.prog + ".dialog"
 
-    rqst.app.ui.dialog.on(event_id, on_dialog_submit)
+    rqst.app.ic.dialog.on(event_id, on_dialog_submit)
 
     builder = (dialogs.DialogBuilder()
                .title("My Cool Dialog")
@@ -59,7 +62,7 @@ def main(rqst):
         rqst.app.log.error(json.dumps(res))
 
 
-def on_dialog_submit(rqst, submit):
+def on_dialog_submit(rqst: DialogRequest, submit):
     resp = Response(rqst)
 
     resp['blocks'] = extract_json([

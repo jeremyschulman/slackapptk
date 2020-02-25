@@ -29,9 +29,11 @@ import shutil
 import json
 import pickle
 from uuid import uuid1
+
+from werkzeug.exceptions import Unauthorized
 from flask.sessions import SessionInterface, SessionMixin
 
-from slackapp2pyez.exceptions import SlackAppError
+
 from slackapp2pyez.verify_request import verify_request
 
 
@@ -90,9 +92,10 @@ class PickleCookieSession(PickleSession):
 
 class SlackAppSessionInterface(SessionInterface):
 
-    def __init__(self, signing_secret, directory):
+    def __init__(self, slackapp, directory):
+        self.slackapp = slackapp
         self.directory = Path(directory)
-        self.signing_secret = signing_secret
+        self.signing_secret = slackapp.config.signing_secret
 
         if self.directory.exists():
             shutil.rmtree(self.directory)
@@ -100,7 +103,6 @@ class SlackAppSessionInterface(SessionInterface):
         self.directory.mkdir()
 
     def open_session(self, app, request):
-
         # If this is not a request from api.slack.com, then we'll use standard
         # cookie session methods.
 
@@ -112,10 +114,9 @@ class SlackAppSessionInterface(SessionInterface):
         #       of form will clear the buffer, as document here:
         #       https://werkzeug.palletsprojects.com/en/1.0.x/wrappers/
 
-        if not verify_request(request=request, signing_secret=self.signing_secret):
-            raise SlackAppError(
-                'Failed to verify slack request',
-                401, request
+        if not self.slackapp.verify_request(request=request):
+            raise Unauthorized(
+                description='Failed to verify slack request',
             )
 
         r_form = request.form

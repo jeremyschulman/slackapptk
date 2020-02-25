@@ -27,7 +27,7 @@ class SlackAppConfig(UserDict):
                          for _chan in self['channels']}
 
         self.signing_secret = obj['app']['signing_secret']
-        self.token = obj['bot']['token']
+        self.token = obj['app']['token']
 
         self['SLACK_CHANNEL_NAME_TO_ID'] = {
             _chan['name']: _chan['id']

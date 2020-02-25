@@ -29,7 +29,7 @@ class BlockActionEvent(ActionEvent):
                 value=data.get('value') or a_id
             )
 
-        elif a_type in ['static_select', 'external_select']:
+        elif a_type in ['static_select', 'external_select', 'radio_buttons']:
             a_val = data['selected_option']['value']
             return ActionEvent(
                 type=a_type, data=data,

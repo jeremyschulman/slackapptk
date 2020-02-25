@@ -12,7 +12,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from requests import Session
+
+import requests
 from collections import UserDict
 
 from slack.web.classes.blocks import SectionBlock
@@ -29,7 +30,7 @@ class Response(UserDict):
         self.rqst = rqst
         self.text = None
         self.client = rqst.client
-        self.request = Session()
+        self.request = requests.Session()
         self.request.headers["Content-Type"] = "application/json"
         self.request.verify = False
 

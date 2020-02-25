@@ -15,7 +15,7 @@ from slack.web.classes.elements import (
 )
 
 from api.slash_apptest import slashcli
-from slackapp2pyez import InteractiveRequest, Response
+from slackapp2pyez import Request, Response
 
 
 cmd = slashcli.add_command_option(
@@ -36,27 +36,25 @@ SESSION_KEY = cmd.prog
 def session_init():
     session.pop(SESSION_KEY, None)
     session[SESSION_KEY] = dict()
-    session[SESSION_KEY]['params'] = {}
 
 
 @slashcli.cli.on(cmd.prog)
 def slash_main(rqst, params):
     session_init()
-
-    cmd_p = session[SESSION_KEY]['params']
+    cmd_p = session[SESSION_KEY]['params'] = {}
     cmd_p['host'] = params['host']
-
     return main(rqst)
 
 
 @slashcli.ui.on(cmd.prog)
 def ui_main(rqst):
     session_init()
+    cmd_p = session[SESSION_KEY]['params'] = {}
+    cmd_p['host'] = ''
     return main(rqst)
 
 
-def main(rqst: InteractiveRequest) -> Optional[Dict]:
-
+def main(rqst: Request) -> Optional[Dict]:
     cmd_p = session[SESSION_KEY]['params']
 
     # If the User provided the host value on the CLI, then send back their
@@ -92,8 +90,8 @@ def main(rqst: InteractiveRequest) -> Optional[Dict]:
 
     app = rqst.app
 
-    @app.ui.ext_select.on(host_selector.accessory.action_id)
-    def select_host_from_dynamic_list(_rqst, action):
+    @app.ic.ext_select.on(host_selector.accessory.action_id)
+    def select_host_from_dynamic_list(_rqst):
         return {
             'options': extract_json([
                 Option(label=val, value=val)
@@ -101,7 +99,7 @@ def main(rqst: InteractiveRequest) -> Optional[Dict]:
             ])
         }
 
-    @app.ui.block_action.on(host_selector.accessory.action_id)
+    @app.ic.block_action.on(host_selector.accessory.action_id)
     def host_selected(_rqst, action):
         _resp = Response(_rqst)
         _resp.send_ephemeral(

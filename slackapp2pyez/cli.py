@@ -1,11 +1,14 @@
+from typing import Optional, Callable, List
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Action, SUPPRESS
 
 from first import first
 from flask import abort
 import pyee
 
+from slackapp2pyez import Response
 from slackapp2pyez import ui
+from slackapp2pyez.app import SlackApp
 
 
 class SlackArgsParserError(Exception):
@@ -20,7 +23,17 @@ class SlackArpsParserShowHelp(Exception):
         self.message = message
 
 
+class SlackArpsParserShowVersion(Exception):
+    def __init__(self, parser, message):
+        self.parser = parser
+        self.message = message
+
+
 class SlackArgsParser(ArgumentParser):
+    def __init__(self, *vargs, **kwargs):
+        super().__init__(*vargs, **kwargs)
+        self.help = None
+
     def print_help(self, file=None):
         raise SlackArpsParserShowHelp(
             parser=self,
@@ -34,16 +47,81 @@ class SlackArgsParser(ArgumentParser):
         )
 
 
+class _SlackAppVersionAction(Action):
+    def __init__(
+            self,
+            option_strings,
+            version=None,
+            dest=SUPPRESS,
+            default=SUPPRESS,
+            help="show program's version number and exit"
+    ):
+        super(_SlackAppVersionAction, self).__init__(
+            option_strings=option_strings,
+            dest=dest,
+            default=default,
+            nargs=0,
+            help=help)
+
+        self.version = version
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        formatter = parser._get_formatter()
+        formatter.add_text(self.version)
+
+        raise SlackArpsParserShowVersion(
+            parser=parser,
+            message=formatter.format_help()
+        )
+
+
 class SlashCommandCLI(object):
 
-    def __init__(self, app, cmd: str, description: str):
+    def __init__(
+            self,
+            app: SlackApp,
+            version: str,
+            cmd: str,
+            description: str,
+            callback: Optional[Callable] = None
+    ):
+        """
+        Provides a CLI argsparse like interface for Slack slash commands,
+        using the `argsparse` standard mechanism.
+
+        Parameters
+        ----------
+        cmd : str
+            The slash command, for example "/boop".
+
+        description : str
+            A short descriptiion of the command that can be used
+            as help-text.
+
+        callback : Callable
+            The slash command cli callback function that will be invoked when
+            the User does not provide any CLI arguments (other than --help).
+            This callback function is expected to return a Slack API result to
+            guide the User through the command.
+        """
         self.app = app
-        self.parser = SlackArgsParser(description=description)
+        self.parser = SlackArgsParser(
+            description=description
+        )
+        self.parser.version = version
+
+        self.parser.add_argument(
+            '--version',
+            action=_SlackAppVersionAction,
+            version='%(prog)s ' + version
+        )
+
         self.parser.prog = cmd
-        self.parsers = []
-        self.sub_cmds = self.parser.add_subparsers()
-        self.ui = pyee.EventEmitter()
+        self.parsers: List[SlackArgsParser] = []
+        self.sub_cmds = self.parser.add_subparsers(parser_class=SlackArgsParser)
+        self.ic = pyee.EventEmitter()
         self.cli = pyee.EventEmitter()
+        self.callback = callback
 
     @property
     def cmd(self):
@@ -51,8 +129,13 @@ class SlashCommandCLI(object):
 
     def add_command_option(self, cmd_name, parser_spec, arg_list=None, parent=None):
         attach_to = parent or self.sub_cmds
+
+        # the add_parser command consumes the 'help' option in a way that I
+        # don't entirely understand how to get it back.
+
         new_p = attach_to.add_parser(cmd_name, **parser_spec)
         new_p.set_defaults(cmd=cmd_name)
+        new_p.help = parser_spec.get('help')
 
         if arg_list:
             for param, param_spec in arg_list:
@@ -63,7 +146,7 @@ class SlashCommandCLI(object):
 
     def get_command_options(self):
         return {
-            p.prog: p.description
+            p.prog: p.help
             for p in self.parsers
         }
 
@@ -72,7 +155,7 @@ class SlashCommandCLI(object):
 
     @staticmethod
     def send_help_on_error(rqst, msg, helptext):
-        resp = rqst.Response()
+        resp = Response(rqst)
 
         atts = resp['attachments'] = list()
         atts.append(dict(
@@ -102,12 +185,17 @@ class SlashCommandCLI(object):
 
     @staticmethod
     def send_help(rqst, helptext):
-        resp = rqst.Response()
+        resp = Response(rqst)
         cmd_str = SlashCommandCLI.get_help_cmd_str(rqst)
         resp.send(
             f'Hi <@{rqst.user_id}>, here is help on the `{cmd_str}` command:\n\n'
             f"```{helptext}```"
         ).raise_for_status()
+
+    @staticmethod
+    def send_version(rqst, versiontext):
+        resp = Response(rqst)
+        resp.send(versiontext).raise_for_status()
 
     def run(self, rqst, event=None):
 
@@ -117,12 +205,12 @@ class SlashCommandCLI(object):
         # ---------------------------------------------------------------------
 
         if event:
-            handler = first(self.ui.listeners(event))
+            handler = first(self.ic.listeners(event))
             if handler is None:
                 rqst.app.log.critical(f"No handler for command option '{event}'")
-                return ""
+                return
 
-            return handler(rqst) or ""
+            return handler(rqst)
 
         # ---------------------------------------------------------------------
         # if `event` was not provided, then the User invoked the slash command
@@ -132,15 +220,19 @@ class SlashCommandCLI(object):
         try:
             args = self.parser.parse_args(rqst.argv)
 
+        except SlackArpsParserShowVersion as exc:
+            SlashCommandCLI.send_version(rqst, exc.message)
+            return
+
         except SlackArpsParserShowHelp as exc:
             SlashCommandCLI.send_help(rqst, exc.message)
-            return ""
+            return
 
         except SlackArgsParserError as exc:
             self.app.log.warning(exc.message)
             SlashCommandCLI.send_help_on_error(rqst, msg=exc.message,
                                                helptext=exc.parser.format_help())
-            return ""
+            return
 
         params = vars(args)
         parser = params.pop('parser', None) or self.parser
@@ -155,4 +247,4 @@ class SlashCommandCLI(object):
             abort(501, emsg)
             return
 
-        return handler(rqst, params) or ""
+        return handler(rqst, params)

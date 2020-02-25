@@ -16,32 +16,48 @@
 
 import json
 
+from typing import TYPE_CHECKING, Union, Optional
+
+if TYPE_CHECKING:
+    from slackapp2pyez import SlackApp
+
+from werkzeug.exceptions import Unauthorized
 from flask import session
 from slack import WebClient
 
 from slackapp2pyez.response import Response
-from slackapp2pyez.exceptions import SlackAppError
 
 __all__ = [
+    'BlockActionsRequest',
     'CommandRequest',
+    'DialogRequest',
     'EventRequest',
     'InteractiveRequest',
     'OptionSelectRequest',
-    'Response'
+    'Request',
+    'ViewRequest',
 ]
 
 
 class Request(object):
 
-    def __init__(self, app, request):
-        self.app = app
+    def __init__(
+            self,
+            app,
+            request
+    ):
+        self.app: SlackApp = app
         self.rqst_data = request.form
         self.rqst_type = session['rqst_type']
         self.user_id = session['user_id']
         self.payload = session['payload']
+
+        # default places to look for values in payload
         self.response_url = self.payload.get('response_url')
         self.trigger_id = self.payload.get('trigger_id')
-        self.client = None
+        self.channel = self.payload.get('channel')
+
+        self.client: Optional[WebClient] = None
 
     def delete(self):
         """
@@ -55,16 +71,19 @@ class Request(object):
         # is valid for this channel based on the app configuration.  Note that
         # Modal requests do not have channel ID values.
 
-        if hasattr(self, 'channel') and self.channel not in self.app.config.channels:
+        if self.channel is not None and self.channel not in self.app.config.channels:
             msg = f"Unable to execute the Request in this channel: {self.channel}"
             self.app.log.error(msg)
-            raise SlackAppError(msg, 401, self)
+            raise Unauthorized(description=msg)
 
-        self.client = WebClient(token=self.app.config['bot']['token'])
+        self.client = WebClient(token=self.app.config.token)
 
 
 class CommandRequest(Request):
     def __init__(self, app, request):
+        """
+        No 'payload' in form_data
+        """
         super().__init__(app, request)
         assert self.rqst_type == 'command'
 
@@ -130,6 +149,7 @@ class InteractiveMessageRequest(Request):
     def __init__(self, app, request):
         super().__init__(app, request)
         self.user_name = self.payload['user']['name']
+        self.channel = self.payload['channel']['id']
         self.finalize()
 
 
@@ -160,10 +180,21 @@ class InteractiveRequest(type):
         'dialog_submission': DialogRequest,
         'interactive_message': InteractiveMessageRequest,
         'view_submission': ViewRequest,
-        'view_close': ViewRequest
+        'view_closed': ViewRequest
     }
 
-    def __new__(mcs, *args, **kwargs):
+    def __new__(
+        mcs,
+        *args,
+        **kwargs
+    ) -> Optional[Union[BlockActionsRequest, DialogRequest,
+                        InteractiveMessageRequest, ViewRequest,
+                        Request]]:
+        """
+        This type class is used to introspect the received flask.Request
+        instance to determine the specific type of interactive component
+        request and create the corresponding SlackApp request instance.
+        """
         app, request = kwargs['app'], kwargs['request']
         r_type = session['rqst_type']
         r_cls = mcs.RQST_TYPES.get(r_type)
@@ -172,6 +203,6 @@ class InteractiveRequest(type):
             app.log.error(
                 f'Unhadled request type: {r_type}'
             )
-            return None
+            r_cls = Request
 
         return r_cls(app=app, request=request)

@@ -5,14 +5,14 @@ from slack.web.classes import extract_json
 from slack.web.classes.blocks import Block
 
 from slack.web.classes.elements import (
-    InteractiveElement, SelectElement,
+    SelectElement, AbstractSelector,
     DatePickerElement
 )
 from slack.web.classes.objects import PlainTextObject
 
 from .elements import (
     PlainTextElement,
-    CheckboxElement
+    MultiSelectElement
 )
 
 __all__ = ['InputBlock']
@@ -29,9 +29,11 @@ class InputBlock(Block):
         self,
         *,
         label: str,
-        element: Union[PlainTextElement, SelectElement,
-                       CheckboxElement,
-                       DatePickerElement, InteractiveElement],
+        element: Optional[Union[PlainTextElement,
+                                AbstractSelector,
+                                SelectElement,
+                                MultiSelectElement,
+                                DatePickerElement]] = None,
         block_id: Optional[str] = None,
         hint: Optional[str] = None,
         optional: bool = None

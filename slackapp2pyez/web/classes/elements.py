@@ -1,4 +1,4 @@
-from typing import Optional, List, Union, Set
+from typing import Optional, List, Union, Set, Dict
 
 from slack.web.classes import (
     JsonObject,
@@ -13,10 +13,15 @@ from slack.web.classes.elements import (
     ConfirmObject
 )
 
+from slackapp2pyez.web.classes.objects import (
+    DescriptiveOption
+)
+
 __all__ = [
     'PlainTextElement',
     'MultiSelectElement',
-    "CheckboxElement"
+    "CheckboxElement",
+    'RadioButtonsElement'
 ]
 
 
@@ -120,7 +125,7 @@ class CheckboxElement(InteractiveElement):
         self,
         *,
         action_id: str,
-        options: List[Union[Option, OptionGroup]],
+        options: List[DescriptiveOption],
         initial_options: Optional[List[Option]] = None,
         confirm: Optional[ConfirmObject] = None,
     ):
@@ -138,5 +143,32 @@ class CheckboxElement(InteractiveElement):
 
         if self.initial_options is not None:
             as_dict['initial_options'] = extract_json(self.initial_options)
+
+        return as_dict
+
+
+class RadioButtonsElement(InteractiveElement):
+    def __init__(
+        self,
+        *,
+        action_id: str,
+        options: List[DescriptiveOption],
+        initial_option: Optional[Option] = None,
+        confirm: Optional[ConfirmObject] = None,
+    ):
+        super().__init__(action_id=action_id, subtype='radio_buttons')
+        self.options = options
+        self.initial_option = initial_option
+        self.confirm = confirm
+
+    def to_dict(self) -> dict:
+        as_dict = super().to_dict()
+        as_dict['options'] = extract_json(self.options)
+
+        if self.confirm is not None:
+            as_dict["confirm"] = extract_json(self.confirm)
+
+        if self.initial_option is not None:
+            as_dict['initial_option'] = extract_json(self.initial_option)
 
         return as_dict

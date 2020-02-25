@@ -9,23 +9,25 @@ import json
 from flask import session
 
 from slack.web.classes.blocks import (
-    SectionBlock
+    SectionBlock, extract_json
 )
 
 from slack.web.classes.elements import (
     ButtonElement, Option,
-    DatePickerElement, SelectElement
+    DatePickerElement, SelectElement,
+    ExternalDataSelectElement
 )
 
 # The following are "missing" from the slackclient package, so implemented
 # these using their SDK.  Hopefully these widgets will be availbale in a near
 # term future release.
 
+from slackapp2pyez import SlackApp
 from slackapp2pyez.web.classes.blocks import (
     InputBlock
 )
 
-from slackapp2pyez.web.classes.modal import Modal
+from slackapp2pyez.modal import Modal, View
 
 from slackapp2pyez.web.classes.elements import (
     MultiSelectElement,
@@ -67,31 +69,33 @@ def ui_main(rqst):
 
 
 def main(rqst):
+    app: SlackApp = rqst.app
     params = session[SESSION_KEY]['params']
-
     rqst.delete()
 
     event_id = cmd.prog + ".view1"
 
-    slackapp.ui.modal.on(event_id, on_main_modal_submit)
+    slackapp.ic.view.on(event_id, on_main_modal_submit)
 
     priv_data = {
         'name': 'Jeremy',
         'state': "NC"
     }
 
-    modal = Modal(title='Ohai Modal!',
-                  callback_id=event_id,
-                  close='Cacel',
-                  submit='Next',
-                  private_metadata=priv_data)
+    modal = Modal(rqst)
+    view = modal.view = View(
+        title='Ohai Modal!',
+        callback_id=event_id,
+        close='Cacel',
+        submit='Next',
+        private_metadata=priv_data)
 
     # -------------------------------------------------------------------------
     # Create a button block:
     # Each time the User clicks it a counter will be incremented by 1.
     # -------------------------------------------------------------------------
 
-    button1 = modal.add_block(SectionBlock(
+    button1 = view.add_block(SectionBlock(
         text="It's Block Kit...but _in a modal_",
         block_id=event_id + ".button1"))
 
@@ -103,8 +107,8 @@ def main(rqst):
 
     params['clicks'] = 0
 
-    @slackapp.ui.block_action.on(button1.block_id)
-    def remember_button(_onb, action):
+    @app.ic.block_action.on(button1.block_id)
+    def remember_button(_onb):
         _params = session[SESSION_KEY]['params']
         _params['clicks'] += 1
 
@@ -120,7 +124,7 @@ def main(rqst):
 
     params['checkboxes'] = checkbox_options[0].value
 
-    checkbox = modal.add_block(SectionBlock(
+    checkbox = view.add_block(SectionBlock(
         text='Nifty checkboxes',
         block_id=event_id + ".checkbox"))
 
@@ -130,7 +134,7 @@ def main(rqst):
             initial_options=[checkbox_options[0]]
         )
 
-    @slackapp.ui.block_action.on(checkbox.block_id)
+    @app.ic.block_action.on(checkbox.block_id)
     def remember_check(_oncb, action):
         _params = session[SESSION_KEY]['params']
         _params['checkboxes'] = action.value
@@ -140,7 +144,7 @@ def main(rqst):
     # Required single line of text.
     # -------------------------------------------------------------------------
 
-    modal.add_block(InputBlock(
+    view.add_block(InputBlock(
         label='First input',
         element=PlainTextElement(
             action_id=event_id + ".text1",
@@ -153,21 +157,30 @@ def main(rqst):
     # Optional multi-line text area, maximum 500 characters.
     # -------------------------------------------------------------------------
 
-    modal.add_block(InputBlock(
+    host_selector = view.add_block(InputBlock(
         label='Next input',
         optional=True,
-        element=PlainTextElement(
-            action_id=event_id + ".text2",
-            multiline=True,
-            max_length=500
-        )
-    ))
+        block_id=event_id + ".ext1"))
+
+    host_selector.element = ExternalDataSelectElement(
+        placeholder='hosts ..',
+        action_id=event_id + ".ext1",
+    )
+
+    @app.ic.ext_select.on(host_selector.element.action_id)
+    def select_host_from_dynamic_list(_rqst):
+        return {
+            'options': extract_json([
+                Option(label=val, value=val)
+                for val in ('lx5e1234', 'lx5w1234', 'lx5e4552')
+            ])
+        }
 
     # -------------------------------------------------------------------------
     # Create an Input Datepicker block
     # -------------------------------------------------------------------------
 
-    modal.add_block(InputBlock(
+    view.add_block(InputBlock(
         label="Pick a date",
         element=DatePickerElement(
             action_id=event_id + ".datepicker",
@@ -179,7 +192,7 @@ def main(rqst):
     # Create an Input to select from static list, optional.
     # -------------------------------------------------------------------------
 
-    modal.add_block(InputBlock(
+    view.add_block(InputBlock(
         label="Select one option",
         optional=True,
         element=SelectElement(
@@ -197,7 +210,7 @@ def main(rqst):
     # from a static list.
     # -------------------------------------------------------------------------
 
-    modal.add_block(InputBlock(
+    view.add_block(InputBlock(
         label="Select many option",
         element=MultiSelectElement(
             placeholder='Select any of ...',
@@ -210,7 +223,7 @@ def main(rqst):
         )
     ))
 
-    res = modal.open(rqst, callback=on_main_modal_submit)
+    res = modal.open(callback=on_main_modal_submit)
     if not res.get('ok'):
         slackapp.log.error(json.dumps(res, indent=3))
 
@@ -232,7 +245,7 @@ def on_main_modal_submit(rqst, input_values):
         checkboxes=params['checkboxes'],
     ))
 
-    modal = Modal(
+    modal = Modal(rqst, view=View(
         title='Modal Results',
         close='Back',
         submit='Done',
@@ -245,6 +258,7 @@ def on_main_modal_submit(rqst, input_values):
                 text="```" + json.dumps(results, indent=3) + "```"
             )
         ]
-    )
+    ))
 
-    return modal.push(rqst, callback=lambda *a: Modal.clear_all())
+    modal.view.clear_on_close = True
+    return modal.push(callback=lambda *_: View.clear_all_response())

@@ -6,17 +6,17 @@ that is presented to the handler will have the following format:
 Request.form ==>
 ```json
 {
-   "token": "<>",
+   "token": "VbBI1gJMFLXtj7YL7PGsZTTO",
    "team_id": "THRDXJR39",
    "team_domain": "nwkautomaniac",
-   "channel_id": "CHQQWM6QM",
-   "channel_name": "networkautomation",
+   "channel_id": "CUDQKG4RM",
+   "channel_name": "nethq-devtest",
    "user_id": "UHQ9S2KK6",
    "user_name": "nwkautomaniac",
-   "command": "/ngrok",
+   "command": "/nethq",
    "text": "",
-   "response_url": "https://hooks.slack.com/commands/<>",
-   "trigger_id": "588706891586.603473637111.53d620d700808469f56fb22ce92fac47"
+   "response_url": "https://hooks.slack.com/commands/THRDXJR39/970351325639/ImKP127vgNGlNLwdhYtm0uWK",
+   "trigger_id": "958376177777.603473637111.d8c7506d267a7d433a6df8429dc9dc84"
 }
 ```
 

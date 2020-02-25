@@ -1,6 +1,7 @@
 from flask import session
 
 from slack.web.classes import extract_json
+
 from slack.web.classes.blocks import (
     SectionBlock,
     ActionsBlock,
@@ -11,7 +12,7 @@ from slack.web.classes.elements import (
 )
 
 from api.slash_apptest import slashcli
-from slackapp2pyez import Response
+from slackapp2pyez import Response, Request
 
 cmd = slashcli.add_command_option(
     'block', parser_spec=dict(
@@ -42,12 +43,12 @@ def ui_main(rqst):
     return main(rqst)
 
 
-def main(rqst):
+def main(rqst: Request):
     resp = Response(rqst)
 
     block_id = SESSION_KEY + '.main.button'
 
-    @rqst.app.ui.block_action.on(block_id)
+    @rqst.app.ic.block_action.on(block_id)
     def _on_button(_rqst, action):
         """ this function will be called when the User clicks on the of buttons defined """
         _resp = Response(_rqst)
