@@ -2,10 +2,8 @@ from typing import Optional
 
 
 from slack.web.classes import (
-    JsonObject, JsonValidator,
-    extract_json
+    JsonObject, JsonValidator
 )
-from slack.web.classes.objects import MarkdownTextObject
 
 
 class DescriptiveOption(JsonObject):

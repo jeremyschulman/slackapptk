@@ -7,7 +7,7 @@ from flask import abort
 import pyee
 
 from slackapp2pyez import Response
-from slackapp2pyez import ui
+from slackapp2pyez.request import action_event
 from slackapp2pyez.app import SlackApp
 
 
@@ -159,7 +159,7 @@ class SlashCommandCLI(object):
 
         atts = resp['attachments'] = list()
         atts.append(dict(
-            color=ui.COLOR_RED,
+            color=action_event.COLOR_RED,
             pretext=f'Hi <@{rqst.user_id}>, I could not run your command',
             text=f"```{rqst.rqst_data['command']} {rqst.rqst_data['text']}```"),
         )

@@ -1,4 +1,4 @@
-from typing import Optional, List, Union, Set, Dict
+from typing import Optional, List, Union, Set
 
 from slack.web.classes import (
     JsonObject,

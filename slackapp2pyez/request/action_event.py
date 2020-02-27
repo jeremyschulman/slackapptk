@@ -19,27 +19,24 @@ class BlockActionEvent(ActionEvent):
     def __new__(cls, *args, **kwargs):
         data = args[0]
         a_type = data['type']
+        a_id = data['action_id']
 
         if a_type == 'button':
-            a_id = data['action_id']
-
             return ActionEvent(
-                type=a_type, data=data,
-                id=a_id,
+                type=a_type, data=data, id=a_id,
                 value=data.get('value') or a_id
             )
 
         elif a_type in ['static_select', 'external_select', 'radio_buttons']:
             a_val = data['selected_option']['value']
             return ActionEvent(
-                type=a_type, data=data,
-                id=a_val, value=a_val
+                type=a_type, data=data, id=a_id,
+                value=a_val
             )
 
         elif a_type == 'checkboxes':
             return ActionEvent(
-                type=a_type, data=data,
-                id=data['action_id'],
+                type=a_type, data=data, id=a_id,
                 value=[
                     each['value']
                     for each in data['selected_options']

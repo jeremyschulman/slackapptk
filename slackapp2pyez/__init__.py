@@ -18,4 +18,4 @@ from slackapp2pyez.request import *
 from slackapp2pyez.app import SlackApp
 from slackapp2pyez.modal import Modal
 from slackapp2pyez.cli import SlashCommandCLI
-from slackapp2pyez.ui import BlockActionEvent
+from slackapp2pyez.request.action_event import BlockActionEvent

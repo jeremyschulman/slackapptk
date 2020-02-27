@@ -1,9 +1,7 @@
 from typing import Callable, Optional
 
-from first import first
 
-
-from slackapp2pyez.request import Request
+from slackapp2pyez.request.all import AnyRequest
 from slackapp2pyez.web.classes.view import View
 from slackapp2pyez.exceptions import SlackAppError
 from slackapp2pyez import SlackApp
@@ -34,11 +32,11 @@ def with_callback(meth):
 
 class Modal(object):
     def __init__(
-            self,
-            rqst: Request,
-            view: Optional[View] = None,
-            detached: Optional[bool] = False,
-            callback: Optional[Callable] = None
+        self,
+        rqst: AnyRequest,
+        view: Optional[View] = None,
+        detached: Optional[bool] = False,
+        callback: Optional[Callable] = None
     ):
         """
 
@@ -63,10 +61,9 @@ class Modal(object):
         self.rqst = rqst
         self.app: SlackApp = rqst.app
 
-        view_attr = lambda: hasattr(rqst, 'view') and View.from_view(getattr(rqst, 'view'))
-        view_payload = lambda: 'view' in rqst.payload and View.from_view(rqst.payload['view'])
+        view_payload = lambda: 'view' in rqst.rqst_data and View.from_view(rqst.payload['view'])
 
-        self.view = first((view, view_attr(), view_payload()))
+        self.view = view or view_payload()
         self.detached = detached
         self.callback = callback
         self.notify_on_close = None

@@ -20,8 +20,15 @@ class SlackAppError(Exception):
     pass
 
 
-class SlackAppApiError(SlackAppError):
-    """
-    Represents an exception when a call to the Slack API fails
-    """
-    pass
+class SlackAppUnhandledRequestError(SlackAppError):
+    def __init__(self, app, payload):
+        super().__init__()
+        self.app = app
+        self.payload = payload
+
+
+# class SlackAppApiError(SlackAppError):
+#     """
+#     Represents an exception when a call to the Slack API fails
+#     """
+#     pass

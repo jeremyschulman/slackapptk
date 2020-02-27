@@ -25,15 +25,15 @@ from slack import WebClient
 
 from slack.web.classes import objects as swc_objs
 
-from slackapp2pyez.request import (
-    Request,
+from slackapp2pyez.request.all import (
+    InteractiveRequest,
     CommandRequest,
-    OptionSelectRequest
+    OptionSelectRequest,
+    BlockActionEvent, ActionEvent, InteractiveMessageActionEvent
 )
 
 from slackapp2pyez.log import create_logger
 from slackapp2pyez.config import SlackAppConfig
-from slackapp2pyez import ui
 from slackapp2pyez.exceptions import SlackAppError
 
 
@@ -105,7 +105,11 @@ class SlackApp(object):
     # HANDLER: slash commands that use the SlashCLI mechanism
     # -------------------------------------------------------------------------
 
-    def handle_slash_command(self, *, name: str, rqst: CommandRequest):
+    def handle_slash_command(
+        self, *,
+        name: str,
+        rqst: CommandRequest
+    ):
         """
         This method is called to process the inbound Slack slash command
         request as invoked by the User.  The calling context is (generally)
@@ -154,7 +158,10 @@ class SlackApp(object):
     # Request handlers - per payload
     # -------------------------------------------------------------------------
 
-    def handle_interactive_request(self, rqst: Request) -> Optional[Dict]:
+    def handle_interactive_request(
+        self,
+        rqst: InteractiveRequest
+    ) -> Optional[Dict]:
         """
         This method should be called by the API route handler bound to the
         Interactive Compenents, Interactivity "Request URL" configured
@@ -166,7 +173,7 @@ class SlackApp(object):
 
         Parameters
         ----------
-        rqst : Request
+        rqst : InteractiveRequest
             The original API request data enrobed in a SlackApp Request instance.
 
         Returns
@@ -182,8 +189,8 @@ class SlackApp(object):
         return self._ia_payload_hanlder[p_type](rqst)
 
     def handle_select_request(
-            self,
-            rqst: OptionSelectRequest
+        self,
+        rqst: OptionSelectRequest
     ):
         """
 
@@ -210,7 +217,7 @@ class SlackApp(object):
         if len(cal_sig.parameters) == 1:
             return callback(rqst)
 
-        action = ui.ActionEvent(
+        action = ActionEvent(
             type=rqst.rqst_type,
             id=rqst.action_id,
             value=rqst.value,
@@ -253,7 +260,7 @@ class SlackApp(object):
         pass
 
     def _handle_view_action(self, rqst, ic_view):
-        event = rqst.view['callback_id']
+        event = rqst.view.data['callback_id']
         callback = first(ic_view.listeners(event))
 
         if callback is None:
@@ -272,7 +279,7 @@ class SlackApp(object):
         # At this point the caller is expecting input value results, so we need
         # to extract them from the view state values.
 
-        vsv = rqst.view_state_values
+        vsv = rqst.view.state_values
 
         input_types = {
             'plain_text_input': lambda e: e.get('value'),
@@ -357,7 +364,7 @@ class SlackApp(object):
         # the callback is expecting the action payload, so obtain that now and
         # then invoke the callback
 
-        action = ui.BlockActionEvent(payload_action)
+        action = BlockActionEvent(payload_action)
         return callback(rqst, action)
 
     def _handle_dialog_submit(self, rqst):
@@ -385,7 +392,7 @@ class SlackApp(object):
         """
         event = rqst.payload['callback_id']
         payload_action = first(rqst.payload['actions'])
-        action = ui.InteractiveMessageActionEvent(payload_action)
+        action = InteractiveMessageActionEvent(payload_action)
         callback = first(self.ic.imsg_attch.listeners(event))
 
         if not callback:

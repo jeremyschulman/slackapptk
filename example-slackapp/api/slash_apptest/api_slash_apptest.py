@@ -20,7 +20,7 @@ from slack.web.classes import (
 )
 
 from slackapp2pyez import CommandRequest, Response
-from slackapp2pyez import ui
+from slackapp2pyez.request import action_event
 
 from blueprint import blueprint
 from app_data import slackapp
@@ -75,7 +75,7 @@ def slackcmd_apptest():
     resp['attachments'] = extract_json([
         attachments.InteractiveAttachment(
             text='First please select a *test command*:\n',
-            color=ui.COLOR_GREEN,
+            color=action_event.COLOR_GREEN,
             callback_id=event_id,
             actions=[
                 actions.ActionStaticSelector(
