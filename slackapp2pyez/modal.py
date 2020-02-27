@@ -61,9 +61,13 @@ class Modal(object):
         self.rqst = rqst
         self.app: SlackApp = rqst.app
 
-        view_payload = lambda: 'view' in rqst.rqst_data and View.from_view(rqst.payload['view'])
+        def from_payload_or_new():
+            if 'view' in rqst.rqst_data:
+                return View.from_view(rqst.rqst_data['view'])
 
-        self.view = view or view_payload()
+            return View()
+
+        self.view = view or from_payload_or_new()
         self.detached = detached
         self.callback = callback
         self.notify_on_close = None

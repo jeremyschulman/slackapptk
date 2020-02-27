@@ -16,8 +16,8 @@ class View(JsonObject):
     def __init__(
         self,
         *,
-        title: str,
-        callback_id: str,
+        title: Optional[str] = None,
+        callback_id: Optional[str] = None,
         close: Optional[str] = None,
         submit: Optional[str] = None,
         private_metadata: Optional[Dict] = None,
