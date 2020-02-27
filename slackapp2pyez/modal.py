@@ -1,4 +1,5 @@
 from typing import Callable, Optional
+from enum import IntEnum, auto
 
 
 from slackapp2pyez.request.all import AnyRequest
@@ -7,7 +8,7 @@ from slackapp2pyez.exceptions import SlackAppError
 from slackapp2pyez import SlackApp
 
 __all__ = [
-    'Modal',
+    'Modal', 'MODAL_MODE',
     'View'
 ]
 
@@ -28,6 +29,12 @@ def with_callback(meth):
         return meth(self, *args, **kwargs)
 
     return wrapper
+
+
+class MODAL_MODE(IntEnum):
+    OPEN = auto()
+    PUSH = auto()
+    UPDATE = auto()
 
 
 class Modal(object):

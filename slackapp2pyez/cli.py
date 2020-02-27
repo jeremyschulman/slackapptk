@@ -6,9 +6,8 @@ from first import first
 from flask import abort
 import pyee
 
-from slackapp2pyez import Response
+from slackapp2pyez.response import Response
 from slackapp2pyez.request import action_event
-from slackapp2pyez.app import SlackApp
 
 
 class SlackArgsParserError(Exception):
@@ -79,7 +78,7 @@ class SlashCommandCLI(object):
 
     def __init__(
             self,
-            app: SlackApp,
+            app,                    #: SlackApp,
             version: str,
             cmd: str,
             description: str,
@@ -159,7 +158,7 @@ class SlashCommandCLI(object):
 
         atts = resp['attachments'] = list()
         atts.append(dict(
-            color=action_event.COLOR_RED,
+            color="#FF0000",    # red
             pretext=f'Hi <@{rqst.user_id}>, I could not run your command',
             text=f"```{rqst.rqst_data['command']} {rqst.rqst_data['text']}```"),
         )

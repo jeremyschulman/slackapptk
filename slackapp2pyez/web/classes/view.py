@@ -62,6 +62,13 @@ class View(JsonObject):
             "response_action": "clear"
         }
 
+    @staticmethod
+    def error_response(errors):
+        return {
+            "response_action": "errors",
+            "errors": errors
+        }
+
     def to_dict(self, *args) -> dict:
         as_dict = super().to_dict()
 

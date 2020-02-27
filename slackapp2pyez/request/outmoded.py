@@ -31,7 +31,7 @@ class DialogRequest(AnyRequest):
             rqst_data=payload,
             user_id=payload['user']['id']
         )
-        self.state = json.loads(self.payload.get('state') or '{}')
+        self.state = json.loads(payload.get('state') or '{}')
 
 
 class InteractiveMessageRequest(AnyRequest):
@@ -59,5 +59,5 @@ class InteractiveMessageRequest(AnyRequest):
             rqst_data=payload,
             user_id=payload['user']['id']
         )
-        self.user_name = self.payload['user']['name']
-        self.channel = self.payload['channel']['id']
+        self.user_name = payload['user']['name']
+        self.channel = payload['channel']['id']

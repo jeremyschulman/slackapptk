@@ -35,7 +35,6 @@ class AnyRequest(object):
         self.rqst_data = rqst_data
         self.rqst_type = rqst_type
         self.user_id = user_id
-        self.payload = rqst_data
 
         # default places to look for values in payload
         self.response_url = self.rqst_data.get('response_url')

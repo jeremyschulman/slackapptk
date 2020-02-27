@@ -36,7 +36,7 @@ class Messenger(UserDict):
     def __init__(
         self,
         app: SlackApp,
-        url: Optional[str] = None,
+        response_url: Optional[str] = None,
         channel: Optional[str] = None
     ):
         """
@@ -47,7 +47,7 @@ class Messenger(UserDict):
         app: SlackApp
             The app context
 
-        url: Optional[str]
+        response_url: Optional[str]
             If provided, this becomes the default response URL in use with the
             send() method.
 
@@ -57,10 +57,11 @@ class Messenger(UserDict):
         """
         super(Messenger, self).__init__()
         self.app = app
-        self.response_url = url
+        self.response_url = response_url
         self.channel = channel
+        self.thread_ts = None              # thread timestamp
 
-        if url:
+        if response_url:
             self.request = requests.Session()
             self.request.headers["Content-Type"] = "application/json"
             self.request.verify = False
@@ -98,7 +99,7 @@ class Messenger(UserDict):
         if text:
             self.text(text)
 
-        return self.request.post(
+        res = self.request.post(
             response_url or self.response_url,
             json=dict(
                 **self,             # contents of message
@@ -106,17 +107,28 @@ class Messenger(UserDict):
             )
         )
 
+        return res
+
     def send_channel(
         self,
         text: Optional[str] = None,
         channel: Optional[str] = None,
+        thread: Optional[bool] = False,
         **kwargs: Optional[Any]
     ):
         if text:
             self.text(text)
 
-        return self.client.chat_postMessage(
+        if thread and self.thread_ts:
+            kwargs['thread_ts'] = self.thread_ts
+
+        res = self.client.chat_postMessage(
             channel=channel or self.channel,
             **self,                 # contets of message
             **kwargs                # any other API fields
         )
+
+        if res.get('ok'):
+            self.thread_ts = res.data['ts']
+
+        return res

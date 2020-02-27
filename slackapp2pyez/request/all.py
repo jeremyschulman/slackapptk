@@ -52,7 +52,7 @@ class OptionSelectRequest(AnyRequest):
         self.block_id = self.rqst_data['block_id']
 
 
-class BlockActionsRequest(AnyRequest):
+class BlockActionRequest(AnyRequest):
     def __init__(
         self,
         app,
@@ -75,11 +75,11 @@ class BlockActionsRequest(AnyRequest):
             app.log.error(
                 f'Unknown block action container type: {c_type}'
             )
-            app.log.debug(json.dumps(self.payload, indent=3))
+            app.log.debug(json.dumps(self.rqst_data, indent=3))
 
 
 RQST_TYPES = {
-    'block_actions': BlockActionsRequest,
+    'block_actions': BlockActionRequest,
     'dialog_submission': DialogRequest,
     'interactive_message': InteractiveMessageRequest,
     'view_submission': ViewRequest,
@@ -97,7 +97,7 @@ RQST_TYPES = {
 def InteractiveRequest(
     app,
     payload: Dict
-) -> Union[BlockActionsRequest,
+) -> Union[BlockActionRequest,
            DialogRequest,
            InteractiveMessageRequest,
            ViewRequest, AnyRequest]:

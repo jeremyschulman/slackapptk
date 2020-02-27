@@ -12,7 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from typing import Optional, Dict, List, TYPE_CHECKING
+from typing import Optional
 
 import time
 import hmac
@@ -25,21 +25,11 @@ from slack import WebClient
 
 from slack.web.classes import objects as swc_objs
 
-from slackapp2pyez.request.all import (
-    InteractiveRequest,
-    CommandRequest,
-    OptionSelectRequest,
-    BlockActionEvent, ActionEvent, InteractiveMessageActionEvent
-)
-
 from slackapp2pyez.log import create_logger
 from slackapp2pyez.config import SlackAppConfig
-from slackapp2pyez.exceptions import SlackAppError
-
-
-# avoid cycle-dependency
-if TYPE_CHECKING:
-    from slackapp2pyez.cli import SlashCommandCLI
+from slackapp2pyez.request import view_inputs
+from slackapp2pyez.cli import SlashCommandCLI
+from slackapp2pyez.request.all import *
 
 
 __all__ = ['SlackApp']
@@ -185,7 +175,7 @@ class SlackApp(object):
             by the api.slack.com for response.
 
         """
-        p_type = rqst.payload['type']
+        p_type = rqst.rqst_data['type']
         return self._ia_payload_hanlder[p_type](rqst)
 
     def handle_select_request(
@@ -259,7 +249,11 @@ class SlackApp(object):
     def _handle_message_action(self, rqst):
         pass
 
-    def _handle_view_action(self, rqst, ic_view):
+    def _handle_view_action(
+        self,
+        rqst: ViewRequest,
+        ic_view: pyee.EventEmitter
+    ):
         event = rqst.view.data['callback_id']
         callback = first(ic_view.listeners(event))
 
@@ -281,47 +275,34 @@ class SlackApp(object):
 
         vsv = rqst.view.state_values
 
-        input_types = {
-            'plain_text_input': lambda e: e.get('value'),
-            'datepicker': lambda e: e.get('selected_date'),
-
-            # single select elements:
-            'static_select': lambda e: e.get('selected_option', {}).get('value'),
-            'external_select': lambda e: e.get('selected_option', {}).get('value'),
-            'users_select': lambda e: e.get('selected_user'),
-            'conversations_select': lambda e: e.get('selected_conversation'),
-            'channels_select': lambda e: e.get('selected_channel'),
-
-            # multi-select elements
-            'multi_static_select': lambda e: [i['value'] for i in e.get('selected_options', {})],
-            'multi_external_select': lambda e: [i['value'] for i in e.get('selected_options', {})],
-            'multi_users_select': lambda e: e.get('selected_users'),
-            'multi_conversations_select': lambda e: e.get('selected_conversations'),
-            'multi_channels_select': lambda e: e.get('selected_channel')
-        }
-
-        def input_value(ele):
-            return input_types[ele['type']](ele)
-
         input_values = {
-            action_id: input_value(action_ele)
+            action_id: view_inputs.get_input_value(action_ele)
             for block_id, block_ele in vsv.items()
             for action_id, action_ele in block_ele.items()
         }
 
         return callback(rqst, input_values)
 
-    def _handle_view_submission_action(self, rqst):
+    def _handle_view_submission_action(
+        self,
+        rqst: ViewRequest
+    ):
         return self._handle_view_action(rqst, self.ic.view)
 
-    def _handle_view_closed_action(self, rqst):
+    def _handle_view_closed_action(
+        self,
+        rqst: ViewRequest
+    ):
         return self._handle_view_action(rqst, self.ic.view_closed)
 
     # -------------------------------------------------------------------------
     # PRIVATE request handlers - per payload type
     # -------------------------------------------------------------------------
 
-    def _handle_block_action(self, rqst):
+    def _handle_block_action(
+        self,
+        rqst: BlockActionRequest
+    ):
         """
         This method is called by handle_interactive_request when the User
         generates an event from a block actions element.  As a result, the code
@@ -345,7 +326,7 @@ class SlackApp(object):
         dict
             Response message to send back to api.slack.com
         """
-        payload_action = first(rqst.payload['actions'])
+        payload_action = first(rqst.rqst_data['actions'])
         event = payload_action['block_id']
         callback = first(self.ic.block_action.listeners(event))
 
@@ -367,9 +348,12 @@ class SlackApp(object):
         action = BlockActionEvent(payload_action)
         return callback(rqst, action)
 
-    def _handle_dialog_submit(self, rqst):
-        event = rqst.payload['callback_id']
-        submission = rqst.payload['submission']
+    def _handle_dialog_submit(
+        self,
+        rqst: DialogRequest
+    ):
+        event = rqst.rqst_data['callback_id']
+        submission = rqst.rqst_data['submission']
         callback = first(self.ic.dialog.listeners(event))
 
         if callback is None:
@@ -379,7 +363,10 @@ class SlackApp(object):
 
         return callback(rqst, submission)
 
-    def _handle_ia_msg_attachment(self, rqst):
+    def _handle_ia_msg_attachment(
+        self,
+        rqst: InteractiveMessageRequest
+    ):
         """
         TODO: deprececiate the use of secondary attachmeents.
 
@@ -390,8 +377,8 @@ class SlackApp(object):
         Returns
         -------
         """
-        event = rqst.payload['callback_id']
-        payload_action = first(rqst.payload['actions'])
+        event = rqst.rqst_data['callback_id']
+        payload_action = first(rqst.rqst_data['actions'])
         action = InteractiveMessageActionEvent(payload_action)
         callback = first(self.ic.imsg_attch.listeners(event))
 
