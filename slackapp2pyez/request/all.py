@@ -17,7 +17,7 @@
 
 from typing import Dict
 
-
+from slackapp2pyez.web.classes.view import View
 from slackapp2pyez.exceptions import SlackAppUnhandledRequestError
 from slackapp2pyez.request.basic import *
 from slackapp2pyez.request.view import *
@@ -68,7 +68,8 @@ class BlockActionRequest(AnyRequest):
         c_type = self.surface['type']
 
         if c_type == 'view':
-            self.view = ViewSurface(payload)
+            # self.view = ViewSurface(payload)
+            self.view = View.from_view(view=payload['view'])
         elif c_type == 'message':
             self.channel = self.surface['channel_id']
         else:

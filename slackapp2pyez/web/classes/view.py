@@ -30,15 +30,18 @@ class View(JsonObject):
         self.callback_id = callback_id
         self.close = close
         self.submit = submit
-        self.private_metadata = private_metadata
+        self.private_metadata = private_metadata or {}
         self.blocks = blocks or list()
 
         self.external_id = external_id
 
         self.view_id = None
         self.view_hash = None
+        self.state_values = None
+
         self.notify_on_close = notify_on_close
         self.clear_on_close = clear_on_close
+        self.origin = None
 
     def add_block(self, block):
         self.blocks.append(block)
@@ -96,25 +99,28 @@ class View(JsonObject):
 
     @classmethod
     def from_view(cls, view):
-        vew_view = cls(
+        new_view = cls(
             title=view['title']['text'],
             callback_id=view['callback_id'],
             blocks=view['blocks'],
-            external_id=view['external_id'] or None
+            external_id=view['external_id'] or None,
         )
 
+        new_view.origin = view
+
         if view['close']:
-            vew_view.close = view['close']['text']
+            new_view.close = view['close']['text']
 
         if view['submit']:
-            vew_view.submit = view['submit']['text']
+            new_view.submit = view['submit']['text']
 
-        vew_view.view_id = view['id']
-        vew_view.view_hash = view['hash']
+        new_view.view_id = view['id']
+        new_view.view_hash = view['hash']
 
         if view['private_metadata']:
-            vew_view.private_metadata = json.loads(
+            new_view.private_metadata = json.loads(
                 view['private_metadata']
             )
 
-        return vew_view
+        new_view.state_values = view['state']['values']
+        return new_view

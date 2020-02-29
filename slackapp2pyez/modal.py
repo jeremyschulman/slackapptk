@@ -74,6 +74,11 @@ class Modal(object):
 
             return View()
 
+        if view and not isinstance(view, View):
+            raise SlackAppError(
+                f'caller provided view not of View origin'
+            )
+
         self.view = view or from_payload_or_new()
         self.detached = detached
         self.callback = callback
@@ -101,6 +106,8 @@ class Modal(object):
 
             return self.rqst.client.views_update(**kwargs)
 
+        import pdb
+        pdb.set_trace()
         raise SlackAppError(
             f'Attempting to update view in unknown context'
         )

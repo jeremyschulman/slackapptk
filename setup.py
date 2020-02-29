@@ -14,7 +14,7 @@
 
 from setuptools import setup, find_packages
 
-package_version = '0.1.0'
+package_version = '0.2.0'
 package_name = 'slackapp2-pyez'
 
 

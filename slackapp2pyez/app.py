@@ -254,7 +254,7 @@ class SlackApp(object):
         rqst: ViewRequest,
         ic_view: pyee.EventEmitter
     ):
-        event = rqst.view.data['callback_id']
+        event = rqst.view.callback_id
         callback = first(ic_view.listeners(event))
 
         if callback is None:
