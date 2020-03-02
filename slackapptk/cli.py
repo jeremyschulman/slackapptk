@@ -233,6 +233,9 @@ class SlashCommandCLI(object):
                                                helptext=exc.parser.format_help())
             return
 
+        # TODO: remove the use of params since we're passing args
+        #       to the handler.
+
         params = vars(args)
         parser = params.pop('parser', None) or self.parser
         cmd = params.pop('cmd', None)
@@ -246,4 +249,4 @@ class SlashCommandCLI(object):
             abort(501, emsg)
             return
 
-        return handler(rqst, params)
+        return handler(rqst, args)

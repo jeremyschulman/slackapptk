@@ -27,7 +27,7 @@ def BlockActionEvent(data) -> ActionEvent:
             value=a_val
         )
 
-    elif a_type == 'checkboxes':
+    elif a_type in ['checkboxes', 'multi_static_select']:
         return ActionEvent(
             type=a_type, data=data, id=a_id,
             value=[

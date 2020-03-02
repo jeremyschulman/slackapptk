@@ -111,7 +111,7 @@ class MultiSelectElement(AbstractSelector):
         if isinstance(self.options[0], OptionGroup):
             json["option_groups"] = extract_json(self.options, "block")
         else:
-            json["options"] = extract_json(self.options, "block")
+            json["options"] = extract_json(self.options)
 
         if self.initial_options is not None:
             json["initial_options"] = extract_json(self.initial_options, "block")
