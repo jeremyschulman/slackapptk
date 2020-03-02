@@ -17,7 +17,7 @@ import logging
 
 __all__ = ['create_logger']
 
-_default_logfile = 'slackapp2pyez.log'
+_default_logfile = 'slackapptk.log'
 _default_format = '%(asctime)s:%(levelname)s:%(message)s'
 
 

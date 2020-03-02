@@ -19,8 +19,8 @@ from slack.web.classes import (
     extract_json
 )
 
-from slackapp2pyez import CommandRequest, Response
-from slackapp2pyez.request import action_event
+from slackapptk import CommandRequest, Response
+from slackapptk.request import action_event
 
 from blueprint import blueprint
 from app_data import slackapp

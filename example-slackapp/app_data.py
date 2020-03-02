@@ -1,6 +1,6 @@
 
 from flask import Flask
-from slackapp2pyez.app import SlackApp
+from slackapptk.app import SlackApp
 
 
 flaskapp = Flask(__package__)

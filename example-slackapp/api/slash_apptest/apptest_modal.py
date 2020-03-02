@@ -22,14 +22,14 @@ from slack.web.classes.elements import (
 # these using their SDK.  Hopefully these widgets will be availbale in a near
 # term future release.
 
-from slackapp2pyez import SlackApp
-from slackapp2pyez.web.classes.blocks import (
+from slackapptk import SlackApp
+from slackapptk.web.classes.blocks import (
     InputBlock
 )
 
-from slackapp2pyez.modal import Modal, View
+from slackapptk.modal import Modal, View
 
-from slackapp2pyez.web.classes.elements import (
+from slackapptk.web.classes.elements import (
     MultiSelectElement,
     PlainTextElement,
     CheckboxElement

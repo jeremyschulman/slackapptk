@@ -13,7 +13,7 @@ from slack.web.classes.elements import (
     ConfirmObject
 )
 
-from slackapp2pyez.web.classes.objects import (
+from slackapptk.web.classes.objects import (
     DescriptiveOption
 )
 

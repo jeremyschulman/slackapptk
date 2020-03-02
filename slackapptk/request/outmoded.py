@@ -1,7 +1,7 @@
 from typing import Dict
 import json
 
-from slackapp2pyez.request.basic import AnyRequest
+from slackapptk.request.basic import AnyRequest
 
 
 class DialogRequest(AnyRequest):

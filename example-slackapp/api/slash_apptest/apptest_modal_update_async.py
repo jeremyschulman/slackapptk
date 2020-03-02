@@ -10,8 +10,8 @@ from slack.web.classes.elements import (
     ButtonElement
 )
 
-from slackapp2pyez.request import Request, ViewRequest
-from slackapp2pyez.modal import Modal, View
+from slackapptk.request import Request, ViewRequest
+from slackapptk.modal import Modal, View
 from api.slash_apptest import slashcli
 
 

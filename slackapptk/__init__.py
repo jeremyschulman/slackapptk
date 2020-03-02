@@ -12,10 +12,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from slackapp2pyez.messenger import Messenger
-from slackapp2pyez.response import Response
-from slackapp2pyez.request import *
-from slackapp2pyez.app import SlackApp
-from slackapp2pyez.modal import Modal
-from slackapp2pyez.cli import SlashCommandCLI
-from slackapp2pyez.request.action_event import BlockActionEvent
+from slackapptk.messenger import Messenger
+from slackapptk.response import Response
+from slackapptk.request import *
+from slackapptk.app import SlackApp
+from slackapptk.modal import Modal
+from slackapptk.cli import SlashCommandCLI
+from slackapptk.request.action_event import BlockActionEvent

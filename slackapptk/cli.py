@@ -6,8 +6,8 @@ from first import first
 from flask import abort
 import pyee
 
-from slackapp2pyez.response import Response
-from slackapp2pyez.request import action_event
+from slackapptk.response import Response
+from slackapptk.request import action_event
 
 
 class SlackArgsParserError(Exception):

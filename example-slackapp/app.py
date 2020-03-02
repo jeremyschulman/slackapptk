@@ -19,8 +19,8 @@ from flask import jsonify
 from blueprint import blueprint
 from slack.web.classes.blocks import SectionBlock
 
-from slackapp2pyez.exceptions import SlackAppError
-from slackapp2pyez.flask.sessions import SlackAppSessionInterface
+from slackapptk.exceptions import SlackAppError
+from slackapptk.flask.sessions import SlackAppSessionInterface
 
 from app_data import (
     flaskapp,

@@ -17,12 +17,12 @@
 
 from typing import Dict
 
-from slackapp2pyez.web.classes.view import View
-from slackapp2pyez.exceptions import SlackAppUnhandledRequestError
-from slackapp2pyez.request.basic import *
-from slackapp2pyez.request.view import *
-from slackapp2pyez.request.outmoded import *
-from slackapp2pyez.request.action_event import *
+from slackapptk.web.classes.view import View
+from slackapptk.exceptions import SlackAppUnhandledRequestError
+from slackapptk.request.basic import *
+from slackapptk.request.view import *
+from slackapptk.request.outmoded import *
+from slackapptk.request.action_event import *
 
 
 class OptionSelectRequest(AnyRequest):

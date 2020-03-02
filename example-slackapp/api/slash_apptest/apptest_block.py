@@ -12,7 +12,7 @@ from slack.web.classes.elements import (
 )
 
 from api.slash_apptest import slashcli
-from slackapp2pyez import Response, Request
+from slackapptk import Response, Request
 
 cmd = slashcli.add_command_option(
     'block', parser_spec=dict(

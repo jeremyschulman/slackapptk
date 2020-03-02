@@ -2,10 +2,10 @@ from typing import Callable, Optional
 from enum import IntEnum, auto
 
 
-from slackapp2pyez.request.all import AnyRequest
-from slackapp2pyez.web.classes.view import View
-from slackapp2pyez.exceptions import SlackAppError
-from slackapp2pyez import SlackApp
+from slackapptk.request.all import AnyRequest
+from slackapptk.web.classes.view import View
+from slackapptk.exceptions import SlackAppError
+from slackapptk import SlackApp
 
 __all__ = [
     'Modal', 'MODAL_MODE',

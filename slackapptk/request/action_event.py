@@ -1,6 +1,6 @@
 from typing import NamedTuple, Union, List
 
-from slackapp2pyez.exceptions import SlackAppError
+from slackapptk.exceptions import SlackAppError
 
 
 class ActionEvent(NamedTuple):

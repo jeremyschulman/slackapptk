@@ -6,7 +6,7 @@ from slack.web.classes import (
 )
 
 from api.slash_apptest.apptest_slashcli import slashcli
-from slackapp2pyez import (
+from slackapptk import (
     Request, Response,
     DialogRequest
 )

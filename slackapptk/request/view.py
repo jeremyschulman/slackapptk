@@ -1,6 +1,6 @@
 import json
-from slackapp2pyez.request.basic import AnyRequest
-from slackapp2pyez.web.classes.view import View
+from slackapptk.request.basic import AnyRequest
+from slackapptk.web.classes.view import View
 
 
 # class ViewSurface(object):

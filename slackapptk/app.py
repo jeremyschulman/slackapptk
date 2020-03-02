@@ -25,11 +25,11 @@ from slack import WebClient
 
 from slack.web.classes import objects as swc_objs
 
-from slackapp2pyez.log import create_logger
-from slackapp2pyez.config import SlackAppConfig
-from slackapp2pyez.request import view_inputs
-from slackapp2pyez.cli import SlashCommandCLI
-from slackapp2pyez.request.all import *
+from slackapptk.log import create_logger
+from slackapptk.config import SlackAppConfig
+from slackapptk.request import view_inputs
+from slackapptk.cli import SlashCommandCLI
+from slackapptk.request.all import *
 
 
 __all__ = ['SlackApp']

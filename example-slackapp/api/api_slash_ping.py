@@ -5,7 +5,7 @@ from first import first
 from blueprint import blueprint
 from app_data import slackapp
 
-from slackapp2pyez import CommandRequest, Response
+from slackapptk import CommandRequest, Response
 
 
 @blueprint.route("/slack/command/ping", methods=['POST'])

@@ -15,7 +15,7 @@
 from setuptools import setup, find_packages
 
 package_version = '0.2.0'
-package_name = 'slackapp2-pyez'
+package_name = 'slackapptk'
 
 
 def requirements(filename='requirements.txt'):
@@ -29,7 +29,7 @@ with open("README.md", "r") as fh:
 setup(
     name=package_name,
     version=package_version,
-    description='Creating Slack apps in Python3',
+    description='Python3 toolkit for Creating Slack apps',
     long_description=long_description,
     long_description_content_type="text/markdown",
     author='Jeremy Schulman',

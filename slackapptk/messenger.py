@@ -20,7 +20,7 @@ from slack.web.client import WebClient
 from slack.web.classes.blocks import SectionBlock
 
 
-from slackapp2pyez.app import SlackApp
+from slackapptk.app import SlackApp
 
 __all__ = [
     "Messenger"

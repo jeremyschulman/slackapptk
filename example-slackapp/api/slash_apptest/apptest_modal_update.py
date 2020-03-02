@@ -4,8 +4,8 @@ from slack.web.classes.blocks import (
     SectionBlock
 )
 
-from slackapp2pyez import Request, CommandRequest, ViewRequest
-from slackapp2pyez.modal import Modal, View
+from slackapptk import Request, CommandRequest, ViewRequest
+from slackapptk.modal import Modal, View
 from api.slash_apptest import slashcli
 
 

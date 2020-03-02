@@ -3,7 +3,7 @@ from flask import request
 from blueprint import blueprint
 from app_data import slackapp
 
-from slackapp2pyez.exceptions import SlackAppError
+from slackapptk.exceptions import SlackAppError
 
 
 @blueprint.route('/slack/request', methods=["POST"])
