@@ -1,0 +1,10 @@
+# The SlackAppTK config variables
+
+# The app-name, from Settings | Basic Information page
+name = "..."
+
+# from Settings | Basic Information page | App Credentials section
+signing_secret = "..."
+
+# from Features | OAuth and Permissions page, but Bot token
+token = "xoxb-..."

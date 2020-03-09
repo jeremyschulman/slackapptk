@@ -1,6 +1,7 @@
 from typing import Dict
-
 from slack.web.client import WebClient
+
+__all__ = ['AnyRequest']
 
 
 class AnyRequest(object):
@@ -43,56 +44,3 @@ class AnyRequest(object):
         self.surface = self.rqst_data.get('container')
 
         self.client = WebClient(token=self.app.config.token)
-
-
-class CommandRequest(AnyRequest):
-    def __init__(
-        self,
-        app,
-        form_data
-    ):
-        """
-        Inbound message is a result of a User entering a /command.
-        """
-        super().__init__(
-            app=app,
-            rqst_type='command',
-            rqst_data=form_data,
-            user_id=form_data['user_id']
-        )
-
-        self.channel = self.rqst_data["channel_id"]
-        self.argv = self.rqst_data['text'].split()
-
-
-class EventRequest(AnyRequest):
-    def __init__(
-        self,
-        app,
-        body: Dict
-    ):
-        """
-        The event data is from the inbound message JSON body.
-
-        Parameters
-        ----------
-        app: SlackApp
-
-        body: Dict
-            The request body from JSON.
-
-        Notes
-        -----
-        https://api.slack.com/types/event
-        """
-        super().__init__(
-            app=app,
-            rqst_type='event',
-            rqst_data=body,
-            user_id=body['event']['user']
-
-        )
-
-        self.event = self.rqst_data['event']
-        self.event_type = self.event['type']
-        self.ts = self.event['ts']

@@ -22,7 +22,9 @@ from slack.web.classes.elements import (
 # these using their SDK.  Hopefully these widgets will be availbale in a near
 # term future release.
 
-from slackapptk import SlackApp
+from slackapptk.app import SlackApp
+from slackapptk.response import Response
+
 from slackapptk.web.classes.blocks import (
     InputBlock
 )
@@ -36,10 +38,10 @@ from slackapptk.web.classes.elements import (
 )
 
 from app_data import slackapp
-from api.slash_apptest import slashcli
+from commands.demo.cli import demo_cmd
 
 
-cmd = slashcli.add_command_option(
+cmd = demo_cmd.add_subcommand(
     'modal', parser_spec=dict(
         help='Run the Modal test example',
         description='Modal Test'
@@ -56,13 +58,13 @@ def session_init():
     session[SESSION_KEY]['params'] = {}
 
 
-@slashcli.cli.on(cmd.prog)
+@demo_cmd.cli.on(cmd.prog)
 def slash_main(rqst, params):
     session_init()
     return main(rqst)
 
 
-@slashcli.ui.on(cmd.prog)
+@demo_cmd.ic.on(cmd.prog)
 def ui_main(rqst):
     session_init()
     return main(rqst)
@@ -71,7 +73,10 @@ def ui_main(rqst):
 def main(rqst):
     app: SlackApp = rqst.app
     params = session[SESSION_KEY]['params']
-    rqst.delete()
+
+    # delete the originating message
+    resp = Response(rqst)
+    resp.send(delete_original=True)
 
     event_id = cmd.prog + ".view1"
 
@@ -167,7 +172,7 @@ def main(rqst):
         action_id=event_id + ".ext1",
     )
 
-    @app.ic.ext_select.on(host_selector.element.action_id)
+    @app.ic.select.on(host_selector.element.action_id)
     def select_host_from_dynamic_list(_rqst):
         return {
             'options': extract_json([
@@ -247,9 +252,8 @@ def on_main_modal_submit(rqst, input_values):
 
     modal = Modal(rqst, view=View(
         title='Modal Results',
-        close='Back',
-        submit='Done',
-        callback_id=cmd.prog + '.modal.last',
+        close='Done',
+        clear_on_close=True,
         blocks=[
             SectionBlock(
                 text="Input results in raw JSON"
@@ -260,5 +264,4 @@ def on_main_modal_submit(rqst, input_values):
         ]
     ))
 
-    modal.view.clear_on_close = True
-    return modal.push(callback=lambda *_: View.clear_all_response())
+    return modal.push()

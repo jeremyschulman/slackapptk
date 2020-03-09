@@ -1,5 +1,6 @@
 from threading import Thread
 from time import sleep
+from argparse import Namespace
 
 from flask import session
 
@@ -10,12 +11,15 @@ from slack.web.classes.elements import (
     ButtonElement
 )
 
-from slackapptk.request import Request, ViewRequest
+from slackapptk.request.view import ViewRequest, AnyRequest
+from slackapptk.response import Response
+from slackapptk.request.command import CommandRequest
+
 from slackapptk.modal import Modal, View
-from api.slash_apptest import slashcli
+from commands.demo.cli import demo_cmd
 
 
-cmd = slashcli.add_command_option(
+cmd = demo_cmd.add_subcommand(
     'async-modal', parser_spec=dict(
         help='Run the async update modal test example',
         description='Async Update Modal'
@@ -33,20 +37,23 @@ def session_init():
     params['boops'] = 0
 
 
-@slashcli.cli.on(cmd.prog)
-def slash_main(rqst, params):
+@demo_cmd.cli.on(cmd.prog)
+def slash_main(
+    rqst: CommandRequest,
+    params: Namespace
+):
     session_init()
     return main(rqst)
 
 
-@slashcli.ui.on(cmd.prog)
+@demo_cmd.ic.on(cmd.prog)
 def ui_main(rqst):
     session_init()
     return main(rqst)
 
 
-def main(rqst: Request):
-    rqst.delete()
+def main(rqst: AnyRequest):
+    Response(rqst).send(delete_original=True)
 
     modal = Modal(
         rqst,
@@ -96,6 +103,7 @@ def delayed_update_view(*_vargs, rqst: ViewRequest, view: View):
 
     modal = Modal(rqst=rqst, view=view, detached=True)
     modal.view.title = 'Booped!'
+    modal.view.close = 'Done'
 
     view.blocks[0] = SectionBlock(
         text='First boop after 5 seconds'
@@ -147,4 +155,5 @@ def on_boop_button(rqst):
 
 
 def done_booping(rqst: ViewRequest):
-    print("Done")
+    params = session[SESSION_KEY]['params']
+    print(f"Booped: {params['boops']}")

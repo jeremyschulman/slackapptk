@@ -1,2 +1,2 @@
-slackpyez2
-pynetbox
+slackapptk
+toml

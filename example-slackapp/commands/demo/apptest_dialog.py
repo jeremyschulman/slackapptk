@@ -1,17 +1,31 @@
+# -----------------------------------------------------------------------------
+# System Imports
+# -----------------------------------------------------------------------------
+
 import json
 from flask import session
+from argparse import Namespace
+
+# -----------------------------------------------------------------------------
+# Public Imports
+# -----------------------------------------------------------------------------
 
 from slack.web.classes import (
     extract_json, dialogs, blocks
 )
 
-from api.slash_apptest.apptest_slashcli import slashcli
-from slackapptk import (
-    Request, Response,
-    DialogRequest
-)
+from slackapptk.response import Response
+from slackapptk.request.any import AnyRequest
+from slackapptk.request.outmoded import DialogRequest
+from slackapptk.request.command import CommandRequest
 
-cmd = slashcli.add_command_option(
+# -----------------------------------------------------------------------------
+# Private Imports
+# -----------------------------------------------------------------------------
+
+from .cli import demo_cmd
+
+cmd = demo_cmd.add_subcommand(
     'dialog', parser_spec=dict(
         help='Run the dialog test example',
         description='Dialog Test'
@@ -28,21 +42,26 @@ def session_init():
     session[SESSION_KEY]['params'] = {}
 
 
-@slashcli.cli.on(cmd.prog)
-def slash_main(rqst, params):
+@demo_cmd.cli.on(cmd.prog)
+def slash_main(
+    rqst: CommandRequest,
+    params: Namespace
+):
     session_init()
     return main(rqst)
 
 
-@slashcli.ui.on(cmd.prog)
-def ui_main(rqst):
+@demo_cmd.ic.on(cmd.prog)
+def ui_main(
+    rqst: AnyRequest
+):
     session_init()
     return main(rqst)
 
 
-def main(rqst: Request):
+def main(rqst: AnyRequest):
     resp = Response(rqst)
-    rqst.delete()
+    resp.send(delete_original=True)
 
     event_id = cmd.prog + ".dialog"
 

@@ -1,4 +1,4 @@
-#  Copyright 2019 Jeremy Schulman, nwkautomaniac@gmail.com
+#  Copyright 2020 Jeremy Schulman, nwkautomaniac@gmail.com
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 from setuptools import setup, find_packages
 
-package_version = '0.2.0'
+package_version = '0.3.0'
 package_name = 'slackapptk'
 
 
@@ -29,7 +29,7 @@ with open("README.md", "r") as fh:
 setup(
     name=package_name,
     version=package_version,
-    description='Python3 toolkit for Creating Slack apps',
+    description='Toolkit for creating Slack apps',
     long_description=long_description,
     long_description_content_type="text/markdown",
     author='Jeremy Schulman',

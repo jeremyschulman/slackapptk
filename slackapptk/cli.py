@@ -7,7 +7,7 @@ from flask import abort
 import pyee
 
 from slackapptk.response import Response
-from slackapptk.request import action_event
+from slackapptk.errors import SlackAppTKError
 
 
 class SlackArgsParserError(Exception):
@@ -77,12 +77,12 @@ class _SlackAppVersionAction(Action):
 class SlashCommandCLI(object):
 
     def __init__(
-            self,
-            app,                    #: SlackApp,
-            version: str,
-            cmd: str,
-            description: str,
-            callback: Optional[Callable] = None
+        self,
+        app,                    #: SlackApp,
+        version: str,
+        cmd: str,
+        description: str,
+        callback: Optional[Callable] = None,
     ):
         """
         Provides a CLI argsparse like interface for Slack slash commands,
@@ -117,7 +117,8 @@ class SlashCommandCLI(object):
 
         self.parser.prog = cmd
         self.parsers: List[SlackArgsParser] = []
-        self.sub_cmds = self.parser.add_subparsers(parser_class=SlackArgsParser)
+        self.sub_cmds = None
+
         self.ic = pyee.EventEmitter()
         self.cli = pyee.EventEmitter()
         self.callback = callback
@@ -126,11 +127,22 @@ class SlashCommandCLI(object):
     def cmd(self):
         return self.parser.prog
 
-    def add_command_option(self, cmd_name, parser_spec, arg_list=None, parent=None):
+    def add_subcommand(self, cmd_name, parser_spec, arg_list=None, parent=None):
+
+        if not any((parent, self.sub_cmds)):
+            self.sub_cmds = self.parser.add_subparsers(parser_class=SlackArgsParser)
+
         attach_to = parent or self.sub_cmds
 
+        if not attach_to:
+            raise SlackAppTKError(
+                f'Unable to attach subcommand {cmd_name} to {self.cmd}.  '
+                'This command was created with no_subcommands'
+            )
+
         # the add_parser command consumes the 'help' option in a way that I
-        # don't entirely understand how to get it back.
+        # don't entirely understand how to get it back.  So I am adding the
+        # attribute back here.
 
         new_p = attach_to.add_parser(cmd_name, **parser_spec)
         new_p.set_defaults(cmd=cmd_name)

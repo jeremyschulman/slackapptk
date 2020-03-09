@@ -13,6 +13,5 @@
 #  limitations under the License.
 
 from . import api_slack
-from . import api_slash_ping
-from . import slash_apptest
+import commands
 

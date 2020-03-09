@@ -5,3 +5,4 @@ THREADING=True
 
 # For use with Sessions
 SECRET_KEY="thisIsAdemoSecretKeyValue"
+SESSIONS_DIR="../../sessions.db"

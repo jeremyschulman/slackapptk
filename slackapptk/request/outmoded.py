@@ -1,7 +1,13 @@
 from typing import Dict
 import json
 
-from slackapptk.request.basic import AnyRequest
+from slackapptk.request.any import AnyRequest
+
+__all__ = [
+    'AnyRequest',
+    'DialogRequest',
+    'InteractiveMessageRequest'
+]
 
 
 class DialogRequest(AnyRequest):

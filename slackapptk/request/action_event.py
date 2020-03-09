@@ -1,6 +1,12 @@
 from typing import NamedTuple, Union, List
 
-from slackapptk.exceptions import SlackAppError
+from slackapptk.errors import SlackAppTKError
+
+__all__ = [
+    'ActionEvent',
+    'BlockActionEvent',
+    'InteractiveMessageActionEvent'
+]
 
 
 class ActionEvent(NamedTuple):
@@ -36,7 +42,7 @@ def BlockActionEvent(data) -> ActionEvent:
             ]
         )
 
-    raise SlackAppError(
+    raise SlackAppTKError(
         f"Unhangled BlockActionEvent type: {a_type}"
     )
 
@@ -62,6 +68,6 @@ def InteractiveMessageActionEvent(action) -> ActionEvent:
             data=action, type=a_type, id=a_name,
             value=action['selected_options'][0]['value'])
 
-    raise SlackAppError(
+    raise SlackAppTKError(
         f'Unhandled InteractiveMessageActionEvent type: {a_type}'
     )

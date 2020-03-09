@@ -3,7 +3,13 @@ import hashlib
 import time
 
 
-def verify_request(*, request, signing_secret) -> bool:
+def verify_request(
+    *,
+    timestamp: str,
+    signature: str,
+    request_data: bytes,
+    signing_secret: str
+) -> bool:
     """
     This function validates the received using the process described
     https://api.slack.com/docs/verifying-requests-from-slack and
@@ -11,8 +17,18 @@ def verify_request(*, request, signing_secret) -> bool:
 
     Parameters
     ----------
-    request : flask.request
+    timestamp: str
+        originates from headers['X-Slack-Request-Timestamp']
+
+    signature: str
+        originates from headers['X-Slack-Signature']
+
+    request_data: bytes
+        The originating request byte-stream; if using
+        Flask, then originates from request.get_data()
+
     signing_secret : str
+        originates from the App config
 
     Returns
     -------
@@ -20,16 +36,13 @@ def verify_request(*, request, signing_secret) -> bool:
         True if signature is validated
         False otherwise
     """
-    timestamp = request.headers['X-Slack-Request-Timestamp']
 
     if abs(time.time() - int(timestamp)) > 60 * 5:
         # The request timestamp is more than five minutes from local time.
         # It could be a replay attack, so let's ignore it.
         return False
 
-    signature = request.headers['X-Slack-Signature']
-
-    req = str.encode('v0:' + str(timestamp) + ':') + request.get_data()
+    req = str.encode('v0:' + str(timestamp) + ':') + request_data
 
     request_hash = 'v0=' + hmac.new(
         str.encode(signing_secret),

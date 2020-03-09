@@ -1,15 +1,20 @@
 from flask import session
+from argparse import Namespace
 
 from slack.web.classes.blocks import (
     SectionBlock
 )
 
-from slackapptk import Request, CommandRequest, ViewRequest
+from slackapptk.response import Response
+from slackapptk.request.any import AnyRequest
+from slackapptk.request.view import ViewRequest
+from slackapptk.request.command import CommandRequest
+
 from slackapptk.modal import Modal, View
-from api.slash_apptest import slashcli
+from commands.demo.cli import demo_cmd
 
 
-cmd = slashcli.add_command_option(
+cmd = demo_cmd.add_subcommand(
     'update-modal', parser_spec=dict(
         help='Run the update modal test example',
         description='Update Modal'
@@ -26,20 +31,23 @@ def session_init():
     session[SESSION_KEY]['params'] = {}
 
 
-@slashcli.cli.on(cmd.prog)
-def slash_main(rqst: CommandRequest, params):
+@demo_cmd.cli.on(cmd.prog)
+def slash_main(
+    rqst: CommandRequest,
+    params: Namespace
+):
     session_init()
     return main(rqst)
 
 
-@slashcli.ui.on(cmd.prog)
-def ui_main(rqst: Request):
+@demo_cmd.ic.on(cmd.prog)
+def ui_main(rqst: AnyRequest):
     session_init()
     return main(rqst)
 
 
-def main(rqst: Request):
-    rqst.delete()
+def main(rqst: AnyRequest):
+    Response(rqst).send(delete_original=True)
 
     modal = Modal(rqst)
 

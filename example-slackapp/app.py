@@ -12,20 +12,20 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import os
 import logging
+import toml
+
 from importlib import import_module
 
-from flask import jsonify
-from blueprint import blueprint
-from slack.web.classes.blocks import SectionBlock
-
-from slackapptk.exceptions import SlackAppError
-from slackapptk.flask.sessions import SlackAppSessionInterface
-
 from app_data import (
-    flaskapp,
+    flaskapp, blueprint,
     slackapp
 )
+
+import app_errors
+import sessions
+import log
 
 
 def create_app():
@@ -37,14 +37,21 @@ def create_app():
     # Setup our Slackapp client
     # -------------------------------------------------------------------------
 
-    slackapp.config.from_envar('SLACKAPP_SETTINGS')
+    try:
+        config_file = os.environ['SLACKAPP_CONFIG']
+        config_data = toml.load(open(config_file))
+        slackapp.config.from_obj(config_data)
+        slackapp.log = log.create_logger()
+
+    except Exception as exc:
+        print(f"Unable to load Slack app config: {str(exc)}")
+        exit(0)
+
     slackapp.log.setLevel(logging.DEBUG)
 
-    sessiondb_path = slackapp.config['sessions']['path']
-
-    app.session_interface = SlackAppSessionInterface(
-        signing_secret=slackapp.config.signing_secret,
-        directory=sessiondb_path
+    app.session_interface = sessions.MyAppSessionInterface(
+        slackapp=slackapp,
+        directory=app.config['SESSIONS_DIR']
     )
 
     # -------------------------------------------------------------------------
@@ -57,21 +64,6 @@ def create_app():
     for route in app.url_map.iter_rules():
         print(route)
 
-    app.register_error_handler(SlackAppError, on_401_unauthorized)
+    app_errors.register_handlers(app)
+
     return app
-
-
-def on_401_unauthorized(exc):
-
-    try:
-        msg, code, rqst = exc.args
-
-    except Exception as exc:
-        errmsg = "App error called with exception: {}".format(str(exc))
-        slackapp.log.error(errmsg)
-        err = dict(blocks=[SectionBlock(text=errmsg).to_dict()])
-        return jsonify(err)
-
-    errmsg = f"I'm sorry {rqst.user_name}, I'm not authorized do to that."
-    msg = dict(blocks=[SectionBlock(text=errmsg).to_dict()])
-    return jsonify(msg)

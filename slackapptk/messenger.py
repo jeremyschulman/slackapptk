@@ -59,7 +59,6 @@ class Messenger(UserDict):
         self.app = app
         self.response_url = response_url
         self.channel = channel
-        self.thread_ts = None              # thread timestamp
 
         if response_url:
             self.request = requests.Session()
@@ -113,22 +112,13 @@ class Messenger(UserDict):
         self,
         text: Optional[str] = None,
         channel: Optional[str] = None,
-        thread: Optional[bool] = False,
         **kwargs: Optional[Any]
     ):
         if text:
             self.text(text)
 
-        if thread and self.thread_ts:
-            kwargs['thread_ts'] = self.thread_ts
-
-        res = self.client.chat_postMessage(
+        return self.client.chat_postMessage(
             channel=channel or self.channel,
             **self,                 # contets of message
             **kwargs                # any other API fields
         )
-
-        if res.get('ok'):
-            self.thread_ts = res.data['ts']
-
-        return res

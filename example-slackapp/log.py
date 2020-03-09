@@ -12,9 +12,28 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from flask import Blueprint
+import sys
+import logging
 
-blueprint = Blueprint(
-    __package__, __name__,
-    url_prefix="/api/v1",
-    static_folder='static')
+__all__ = ['create_logger']
+
+_default_logfile = 'slackapptk-example.log'
+_default_format = '%(asctime)s:%(levelname)s:%(message)s'
+
+
+def create_logger(logformat=None, logfile=None, stream=None):
+
+    log = logging.getLogger(__package__)
+    log.setLevel(logging.INFO)
+    formatter = logging.Formatter(logformat or _default_format)
+
+    fh = logging.FileHandler(logfile or _default_logfile)
+    fh.setFormatter(formatter)
+    log.addHandler(fh)
+
+    if stream:
+        fh = logging.StreamHandler(stream)
+        fh.setFormatter(formatter)
+        log.addHandler(fh)
+
+    return log

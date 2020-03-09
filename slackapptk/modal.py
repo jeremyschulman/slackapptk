@@ -2,10 +2,10 @@ from typing import Callable, Optional
 from enum import IntEnum, auto
 
 
-from slackapptk.request.all import AnyRequest
+from slackapptk.request.any import AnyRequest
 from slackapptk.web.classes.view import View
-from slackapptk.exceptions import SlackAppError
-from slackapptk import SlackApp
+from slackapptk.errors import SlackAppTKError
+from slackapptk.app import SlackApp
 
 __all__ = [
     'Modal', 'MODAL_MODE',
@@ -75,7 +75,7 @@ class Modal(object):
             return View()
 
         if view and not isinstance(view, View):
-            raise SlackAppError(
+            raise SlackAppTKError(
                 f'caller provided view not of View origin'
             )
 
@@ -108,7 +108,7 @@ class Modal(object):
 
         import pdb
         pdb.set_trace()
-        raise SlackAppError(
+        raise SlackAppTKError(
             f'Attempting to update view in unknown context'
         )
 

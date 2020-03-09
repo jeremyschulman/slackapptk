@@ -125,8 +125,8 @@ class CheckboxElement(InteractiveElement):
         self,
         *,
         action_id: str,
-        options: List[DescriptiveOption],
-        initial_options: Optional[List[Option]] = None,
+        options: List[Union[Option, DescriptiveOption]],
+        initial_options: Optional[List[Union[Option, DescriptiveOption]]] = None,
         confirm: Optional[ConfirmObject] = None,
     ):
         super().__init__(action_id=action_id, subtype='checkboxes')

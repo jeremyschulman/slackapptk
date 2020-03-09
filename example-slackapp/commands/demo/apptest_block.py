@@ -11,10 +11,11 @@ from slack.web.classes.elements import (
     ButtonElement
 )
 
-from api.slash_apptest import slashcli
-from slackapptk import Response, Request
+from commands.demo.cli import demo_cmd
+from slackapptk.request.any import AnyRequest
+from slackapptk.response import Response
 
-cmd = slashcli.add_command_option(
+cmd = demo_cmd.add_subcommand(
     'block', parser_spec=dict(
         help='Run the block test example',
         description='Block test'
@@ -31,19 +32,21 @@ def session_init():
     session[SESSION_KEY]['params'] = {}
 
 
-@slashcli.cli.on(cmd.prog)
+@demo_cmd.cli.on(cmd.prog)
 def slash_main(rqst, params):
     session_init()
     return main(rqst)
 
 
-@slashcli.ui.on(cmd.prog)
+@demo_cmd.ic.on(cmd.prog)
 def ui_main(rqst):
     session_init()
     return main(rqst)
 
 
-def main(rqst: Request):
+def main(
+    rqst: AnyRequest
+):
     resp = Response(rqst)
 
     block_id = SESSION_KEY + '.main.button'

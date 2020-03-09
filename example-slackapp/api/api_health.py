@@ -13,7 +13,7 @@
 #  limitations under the License.
 
 from flask import jsonify
-from blueprint import blueprint
+from app_data import blueprint
 
 
 @blueprint.route("/health", methods=["GET"])

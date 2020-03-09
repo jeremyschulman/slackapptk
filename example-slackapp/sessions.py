@@ -1,15 +1,21 @@
-from pathlib import Path
-import shutil
 
+import shutil
 import json
 
-from werkzeug.exceptions import Unauthorized
 from flask.sessions import SessionInterface
+from werkzeug.exceptions import Unauthorized
+from pathlib import Path
 
 
+from slackapptk.flask.sessions import (
+    PickleSlackSession,
+    PickleCookieSession,
+)
+
+from slackapptk.flask.verify_request import verify_request
 
 
-class SlackAppSessionInterface(SessionInterface):
+class MyAppSessionInterface(SessionInterface):
 
     def __init__(self, slackapp, directory):
         self.slackapp = slackapp
@@ -33,42 +39,33 @@ class SlackAppSessionInterface(SessionInterface):
         #       of form will clear the buffer, as document here:
         #       https://werkzeug.palletsprojects.com/en/1.0.x/wrappers/
 
-        if not self.slackapp.verify_request(request=request):
+        secret = self.slackapp.config.signing_secret
+        if not verify_request(request=request, signing_secret=secret):
             raise Unauthorized(
                 description='Failed to verify slack request',
             )
 
-        r_form = request.form
-        payload = None
+        session_id = None
+        rqst_data = request.form
 
-        def error():
-            print("HEADERS>> {}".format(json.dumps(dict(request.headers), indent=3)))
-            print("FORM>> {}".format(json.dumps(r_form, indent=3)))
-            print("JSON>> {}".format(json.dumps(request.json, indent=3)))
-            raise RuntimeError("Do not know this Slack API.")
+        if 'payload' in rqst_data:
+            rqst_data = json.loads(rqst_data['payload'] or '{}')
+            session_id = rqst_data['user']['id']
 
-        if 'payload' in r_form:
-            payload = json.loads(r_form['payload'] or '{}')
-            rqst_type = payload['type']
-            session_id = payload['user']['id']
-        elif 'command' in r_form:
-            rqst_type = 'command'
-            session_id = r_form['user_id']
+        elif 'command' in rqst_data:
+            session_id = rqst_data['user_id']
+
         elif request.json:
             if 'event' in request.json:
-                rqst_type = 'event'
+                rqst_data = request.json
                 event_data = request.json['event']
                 session_id = event_data.get('user') or event_data['channel']
-            elif 'type' in request.json:
-                return PickleCookieSession(self, request, app)
-            else:
-                error()
-        else:
-            error()
 
+        if not session_id:
+            raise Unauthorized("Session undetermined request", rqst_data)
+
+        request.slack_rqst_data = rqst_data
         session = PickleSlackSession(session_if=self, session_id=session_id)
-        session['rqst_type'] = rqst_type
-        session['rqst_data'] = payload or r_form
         session['user_id'] = session_id
 
         return session

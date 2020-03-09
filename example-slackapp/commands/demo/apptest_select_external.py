@@ -1,5 +1,6 @@
 import json
 from typing import Optional, Dict
+from argparse import Namespace
 
 from flask import session
 
@@ -14,11 +15,15 @@ from slack.web.classes.elements import (
     Option
 )
 
-from api.slash_apptest import slashcli
-from slackapptk import Request, Response
+
+from slackapptk.response import Response
+from slackapptk.request.command import CommandRequest, AnyRequest
 
 
-cmd = slashcli.add_command_option(
+from commands.demo.cli import demo_cmd
+
+
+cmd = demo_cmd.add_subcommand(
     'select', parser_spec=dict(
         help='Run the select from external source test example',
         description='Ext.Select Test'
@@ -38,15 +43,18 @@ def session_init():
     session[SESSION_KEY] = dict()
 
 
-@slashcli.cli.on(cmd.prog)
-def slash_main(rqst, params):
+@demo_cmd.cli.on(cmd.prog)
+def slash_main(
+    rqst: CommandRequest,
+    params: Namespace
+):
     session_init()
     cmd_p = session[SESSION_KEY]['params'] = {}
-    cmd_p['host'] = params['host']
+    cmd_p['host'] = params.host
     return main(rqst)
 
 
-@slashcli.ui.on(cmd.prog)
+@demo_cmd.ic.on(cmd.prog)
 def ui_main(rqst):
     session_init()
     cmd_p = session[SESSION_KEY]['params'] = {}
@@ -54,7 +62,7 @@ def ui_main(rqst):
     return main(rqst)
 
 
-def main(rqst: Request) -> Optional[Dict]:
+def main(rqst: AnyRequest) -> Optional[Dict]:
     cmd_p = session[SESSION_KEY]['params']
 
     # If the User provided the host value on the CLI, then send back their
@@ -90,7 +98,7 @@ def main(rqst: Request) -> Optional[Dict]:
 
     app = rqst.app
 
-    @app.ic.ext_select.on(host_selector.accessory.action_id)
+    @app.ic.select.on(host_selector.accessory.action_id)
     def select_host_from_dynamic_list(_rqst):
         return {
             'options': extract_json([

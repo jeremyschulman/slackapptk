@@ -12,24 +12,44 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from typing import Optional
+# -----------------------------------------------------------------------------
+# System Imports
+# -----------------------------------------------------------------------------
 
-import time
-import hmac
-import hashlib
+from logging import getLogger
+from typing import Optional, Dict, List
 from inspect import signature
+
+# -----------------------------------------------------------------------------
+# Public Imports
+# -----------------------------------------------------------------------------
 
 from first import first
 import pyee
-from slack import WebClient
 
 from slack.web.classes import objects as swc_objs
 
-from slackapptk.log import create_logger
+# -----------------------------------------------------------------------------
+# Private Imports
+# -----------------------------------------------------------------------------
+
+from slackapptk.errors import SlackAppTKError
 from slackapptk.config import SlackAppConfig
 from slackapptk.request import view_inputs
 from slackapptk.cli import SlashCommandCLI
-from slackapptk.request.all import *
+
+from slackapptk.request.command import CommandRequest
+from slackapptk.request.interactive import (
+    InteractiveRequest, BlockActionRequest,
+    DialogRequest,
+    InteractiveMessageRequest,
+)
+from slackapptk.request.select import OptionSelectRequest
+from slackapptk.request.action_event import (
+    ActionEvent, BlockActionEvent,
+    InteractiveMessageActionEvent
+)
+from slackapptk.request.view import ViewRequest
 
 
 __all__ = ['SlackApp']
@@ -39,8 +59,8 @@ class SlackAppInteractiveHandlers(object):
     def __init__(self):
         self.block_action = pyee.EventEmitter()
         self.dialog = pyee.EventEmitter()
-        self.ext_select = pyee.EventEmitter()
-        self.imsg_attch = pyee.EventEmitter()
+        self.select = pyee.EventEmitter()
+        self.imsg = pyee.EventEmitter()
         self.view = pyee.EventEmitter()
         self.view_closed = pyee.EventEmitter()
 
@@ -48,7 +68,7 @@ class SlackAppInteractiveHandlers(object):
 class SlackApp(object):
 
     def __init__(self):
-        self.log = create_logger()
+        self.log = getLogger(__name__)
         self.slash_commands: Dict[str, SlashCommandCLI] = dict()
         self.ic = SlackAppInteractiveHandlers()
 
@@ -56,7 +76,7 @@ class SlackApp(object):
         #   https://api.slack.com/reference/interaction-payloads
         #   https://api.slack.com/interactivity/handling#payloads
 
-        self._ia_payload_hanlder = {
+        self._ic_hanlders = {
 
             'block_actions': self._handle_block_action,
             'message_actions': self._handle_message_action,
@@ -76,20 +96,6 @@ class SlackApp(object):
         }
 
         self.config = SlackAppConfig()
-
-    def Client(self):
-        """
-        Create a Slack Web Client instance based on the SlackApp configuration
-        or provided parameters.  This is generally used for test and debug
-        purposes, and not by the SlackApp itself.
-
-        Returns
-        -------
-        WebClient
-            The Slack WebClient instance that is used for api.slack.com
-            communicaiton purposes.
-        """
-        return WebClient(token=self.config.token)
 
     # -------------------------------------------------------------------------
     # HANDLER: slash commands that use the SlashCLI mechanism
@@ -125,7 +131,7 @@ class SlackApp(object):
         if not slashcli:
             emsg = f"Unknown slash command name: {name}"
             self.log.error(emsg)
-            raise SlackAppError(emsg, name, rqst)
+            raise SlackAppTKError(emsg, name, rqst)
 
         # if the User provided command line parameters then "run" their
         # command; code execution will pickup via a bound callback handler
@@ -137,10 +143,10 @@ class SlackApp(object):
         # Otherwise, the User did not provide any additional CLI options,
         # continue code execution at the SlashCLI callback handler
 
-        if not slashcli:
+        if not slashcli.callback:
             emsg = f'Missing slash command callback for {name}'
             self.log.error(emsg)
-            raise SlackAppError(emsg, name, rqst)
+            raise SlackAppTKError(emsg, name, rqst)
 
         return slashcli.callback(slashcli, rqst)
 
@@ -176,7 +182,7 @@ class SlackApp(object):
 
         """
         p_type = rqst.rqst_data['type']
-        return self._ia_payload_hanlder[p_type](rqst)
+        return self._ic_hanlders[p_type](rqst)
 
     def handle_select_request(
         self,
@@ -197,7 +203,7 @@ class SlackApp(object):
         """
         event = rqst.block_id
 
-        callback = first(self.ic.ext_select.listeners(event))
+        callback = first(self.ic.select.listeners(event))
         if not callback:
             msg = f"No handler for ext selector event: {event}"
             self.log.error(msg)
@@ -228,7 +234,7 @@ class SlackApp(object):
             emsg = (f'Unexpected return, not list, from select {action.value}, callback: {event}.  '
                     f'Got {type(res_list)} instead')
             self.log.error(emsg)
-            raise SlackAppError(emsg, rqst, res_list)
+            raise SlackAppTKError(emsg, rqst, res_list)
 
         first_res = first(res_list)
         if isinstance(first_res, swc_objs.Option):
@@ -238,7 +244,7 @@ class SlackApp(object):
         else:
             emsg = f'Unknown return type from select callback: {type(first_res)}'
             self.log.error(emsg)
-            raise SlackAppError(emsg, rqst, res_list)
+            raise SlackAppTKError(emsg, rqst, res_list)
 
         return {res_type: swc_objs.extract_json(res_list)}
 
@@ -380,7 +386,7 @@ class SlackApp(object):
         event = rqst.rqst_data['callback_id']
         payload_action = first(rqst.rqst_data['actions'])
         action = InteractiveMessageActionEvent(payload_action)
-        callback = first(self.ic.imsg_attch.listeners(event))
+        callback = first(self.ic.imsg.listeners(event))
 
         if not callback:
             msg = f"No handler for IMSG action event: {event}"
@@ -388,44 +394,3 @@ class SlackApp(object):
             return
 
         return callback(rqst, action)
-
-    def error(self, exc):
-        emsg = str(exc)
-        if exc.args:
-            self.log.error("SlackApp ERROR>>\n{}\n".format(emsg))
-
-        raise exc
-
-    def verify_request(self, request) -> bool:
-        """
-        This function validates the received using the process described
-        https://api.slack.com/docs/verifying-requests-from-slack and
-        using the code in https://github.com/slackapi/python-slack-events-api
-
-        Parameters
-        ----------
-        request : flask.request
-
-        Returns
-        -------
-        bool
-            True if signature is validated
-            False otherwise
-        """
-        timestamp = request.headers['X-Slack-Request-Timestamp']
-
-        if abs(time.time() - int(timestamp)) > 60 * 5:
-            # The request timestamp is more than five minutes from local time.
-            # It could be a replay attack, so let's ignore it.
-            return False
-
-        msg_sig = request.headers['X-Slack-Signature']
-
-        req = str.encode('v0:' + str(timestamp) + ':') + request.get_data()
-
-        request_hash = 'v0=' + hmac.new(
-            str.encode(self.config.signing_secret),
-            req, hashlib.sha256
-        ).hexdigest()
-
-        return hmac.compare_digest(request_hash, msg_sig)
