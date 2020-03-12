@@ -14,6 +14,7 @@
 
 from typing import Optional, Any
 
+
 import requests
 from collections import UserDict
 from slack.web.client import WebClient
@@ -37,7 +38,8 @@ class Messenger(UserDict):
         self,
         app: SlackApp,
         response_url: Optional[str] = None,
-        channel: Optional[str] = None
+        channel: Optional[str] = None,
+        thread_ts: Optional[str] = None
     ):
         """
         Creates an instance of a Messenger based on the provided SlackAPp.
@@ -54,11 +56,18 @@ class Messenger(UserDict):
         channel: Optional[str]
             If provided, this becomes the default channel value in use with the
             send_channel() method.
+
+        thread_ts: Optional[str]
+            If provided, this becomes the default thread timestamp to use,
+            and messages will be threaded.
         """
         super(Messenger, self).__init__()
         self.app = app
         self.response_url = response_url
         self.channel = channel
+
+        if thread_ts:
+            self['thread_ts'] = thread_ts
 
         if response_url:
             self.request = requests.Session()
@@ -67,10 +76,7 @@ class Messenger(UserDict):
 
         self.client = WebClient(self.app.config.token)
 
-    def text(
-        self,
-        text: str
-    ):
+    def text(self, text: str):
         """
         Convenience method to add a SectionBlock with text as the first block.
 
@@ -84,9 +90,8 @@ class Messenger(UserDict):
         Messenger
             For method chaining
         """
-        blocks = self.get('blocks') or []
+        blocks = self.setdefault('blocks', [])
         blocks.insert(0, SectionBlock(text=text).to_dict())
-        self['blocks'] = blocks
         return self
 
     def send_response(
@@ -101,24 +106,47 @@ class Messenger(UserDict):
         res = self.request.post(
             response_url or self.response_url,
             json=dict(
-                **self,             # contents of message
-                **kwargs            # any other API fields
+                # contents of messenger[UserDict]
+                **self,
+                # any other API fields
+                **kwargs
             )
         )
 
         return res
 
-    def send_channel(
-        self,
+    # def send_channel(
+    #     self,
+    #     text: Optional[str] = None,
+    #     channel: Optional[str] = None,
+    #     **kwargs: Optional[Any]
+    # ):
+    #     if text:
+    #         self.text(text)
+    #
+    #     return self.client.chat_postMessage(
+    #         channel=channel or self.channel,
+    #         **self,                 # contets of message
+    #         **kwargs                # any other API fields
+    #     )
+
+    def send(
+        self, *,
         text: Optional[str] = None,
         channel: Optional[str] = None,
-        **kwargs: Optional[Any]
-    ):
+        private: Optional[bool] = False,
+        **kwargs
+     ):
         if text:
             self.text(text)
 
-        return self.client.chat_postMessage(
+        api_call = (self.client.chat_postEphemeral if private
+                    else self.client.chat_postMessage)
+
+        return api_call(
             channel=channel or self.channel,
-            **self,                 # contets of message
-            **kwargs                # any other API fields
+            # contents of messenger[UserDict]
+            **self,
+            # any other API fields provided by Caller
+            **kwargs
         )

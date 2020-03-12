@@ -145,15 +145,25 @@ class SlashCommandCLI(object):
         # attribute back here.
 
         new_p = attach_to.add_parser(cmd_name, **parser_spec)
-        new_p.set_defaults(cmd=cmd_name)
         new_p.help = parser_spec.get('help')
 
         if arg_list:
             for param, param_spec in arg_list:
                 new_p.add_argument(param, **param_spec)
 
-        self.parsers.append(new_p)
+        new_p.set_defaults(cmd=cmd_name)
+        if not parent:
+            self.parsers.append(new_p)
+
         return new_p
+
+    def add_subparser(self, name, help, description, parent=None, **kwargs):
+        new_p = self.add_subcommand(
+            cmd_name=name, parent=parent,
+            parser_spec=dict(help=help, description=description)
+        )
+        new_p.set_defaults(parser=new_p)
+        return new_p.add_subparsers(**kwargs)
 
     def get_command_options(self):
         return {
