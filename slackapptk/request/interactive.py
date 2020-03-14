@@ -10,7 +10,8 @@ from slackapptk.request.outmoded import *
 __all__ = [
     'AnyRequest',
     'BlockActionRequest',
-    'BlockActionEvent'
+    'BlockActionEvent',
+    'InteractiveRequest'
 ]
 
 

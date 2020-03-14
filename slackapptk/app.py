@@ -38,21 +38,26 @@ from slackapptk.config import SlackAppConfig
 from slackapptk.request import view_inputs
 from slackapptk.cli import SlashCommandCLI
 
-from slackapptk.request.command import CommandRequest
-from slackapptk.request.interactive import (
-    InteractiveRequest, BlockActionRequest,
+from slackapptk.request.all import (
+    CommandRequest,
+    InteractiveRequest,
+    BlockActionRequest,
     DialogRequest,
     InteractiveMessageRequest,
+    OptionSelectRequest,
+    ViewRequest
 )
-from slackapptk.request.select import OptionSelectRequest
+
 from slackapptk.request.action_event import (
     ActionEvent, BlockActionEvent,
     InteractiveMessageActionEvent
 )
-from slackapptk.request.view import ViewRequest
 
 
-__all__ = ['SlackApp']
+__all__ = [
+    'SlackApp',
+    'SlashCommandCLI'
+]
 
 
 class SlackAppInteractiveHandlers(object):
@@ -65,11 +70,74 @@ class SlackAppInteractiveHandlers(object):
         self.view_closed = pyee.EventEmitter()
 
 
+class SlackAppCommands(object):
+    def __init__(self, app):
+        self.app = app
+        self._registry = dict()
+
+    def register(self, parser, callback):
+        cmd = self._registry[parser.prog] = SlashCommandCLI(
+            parser=parser,
+            callback=callback
+        )
+        return cmd
+
+    def run(
+        self, *,
+        name: str,
+        rqst: CommandRequest
+    ):
+        """
+        This method is called to process the inbound Slack slash command
+        request as invoked by the User.  The calling context is (generally)
+        the API route handler.
+
+        Parameters
+        ----------
+        name : str
+            The name of the slash command, as previously registered
+            by the slack app
+
+        rqst : CommandRequest
+            The inbound API request enrobed as a SlackApp command request
+            instance.
+
+        Returns
+        -------
+        Optional[Dict]
+            The results of the code handler that ultimately processes the
+            request; which is slash command specific.
+        """
+        slashcli = self._registry.get(name)
+        if not slashcli:
+            emsg = f"Unknown slash command name: {name}"
+            self.app.log.error(emsg)
+            raise SlackAppTKError(emsg, name, rqst)
+
+        # if the User provided command line parameters then "run" their
+        # command; code execution will pickup via a bound callback handler
+        # depending on what the User entered; which is slash-commmand specific.
+
+        if len(rqst.argv):
+            return slashcli.run(rqst)
+
+        # Otherwise, the User did not provide any additional CLI options,
+        # continue code execution at the SlashCLI callback handler
+
+        if not slashcli.callback:
+            emsg = f'Missing slash command callback for {name}'
+            self.app.log.error(emsg)
+            raise SlackAppTKError(emsg, name, rqst)
+
+        return slashcli.callback(slashcli, rqst)
+
+
 class SlackApp(object):
 
     def __init__(self):
         self.log = getLogger(__name__)
         self.slash_commands: Dict[str, SlashCommandCLI] = dict()
+        self.commands = SlackAppCommands(self)
         self.ic = SlackAppInteractiveHandlers()
 
         # create callback handler for different interactive payload types.
@@ -127,28 +195,7 @@ class SlackApp(object):
             The results of the code handler that ultimately processes the
             request; which is slash command specific.
         """
-        slashcli = self.slash_commands.get(name)
-        if not slashcli:
-            emsg = f"Unknown slash command name: {name}"
-            self.log.error(emsg)
-            raise SlackAppTKError(emsg, name, rqst)
-
-        # if the User provided command line parameters then "run" their
-        # command; code execution will pickup via a bound callback handler
-        # depending on what the User entered; which is slash-commmand specific.
-
-        if len(rqst.argv):
-            return slashcli.run(rqst)
-
-        # Otherwise, the User did not provide any additional CLI options,
-        # continue code execution at the SlashCLI callback handler
-
-        if not slashcli.callback:
-            emsg = f'Missing slash command callback for {name}'
-            self.log.error(emsg)
-            raise SlackAppTKError(emsg, name, rqst)
-
-        return slashcli.callback(slashcli, rqst)
+        return self.commands.run(name=name,rqst=rqst)
 
     # -------------------------------------------------------------------------
     # Request handlers - per payload
