@@ -4,6 +4,7 @@ from slackapptk.request.command import CommandRequest
 from slackapptk.response import Response
 
 
+# noinspection PyUnusedLocal
 def ping(
     slashcli: SlashCommandCLI,
     rqst: CommandRequest

@@ -1,6 +1,19 @@
+"""
+/demo async-modal
+"""
+
+# -----------------------------------------------------------------------------
+# System Imports
+# -----------------------------------------------------------------------------
+
 from threading import Thread
 from time import sleep
-from argparse import Namespace
+import argparse
+
+
+# -----------------------------------------------------------------------------
+# Public Imports
+# -----------------------------------------------------------------------------
 
 from flask import session
 
@@ -11,58 +24,117 @@ from slack.web.classes.elements import (
     ButtonElement
 )
 
+# -----------------------------------------------------------------------------
+# SlackAppTK Imports
+# -----------------------------------------------------------------------------
+
 from slackapptk.request.view import ViewRequest, AnyRequest
-from slackapptk.response import Response
 from slackapptk.request.command import CommandRequest
-
 from slackapptk.modal import Modal, View
-from commands.demo.cli import demo_cmd
+from slackapptk.messenger import Messenger
 
+# -----------------------------------------------------------------------------
+# Private Imports
+# -----------------------------------------------------------------------------
 
-cmd = demo_cmd.add_subcommand(
-    'async-modal', parser_spec=dict(
-        help='Run the async update modal test example',
-        description='Async Update Modal'
-    )
+from commands.demo.cli import demo_cmds, slash_demo
+
+# -----------------------------------------------------------------------------
+#
+#                                 CODE BEGINS
+#
+# -----------------------------------------------------------------------------
+
+ASYNC_SLEEP_TIME_SEC = 5
+MAX_SLEEP_TIME_SEC = 20
+
+# define the CLI parser for the command "/demo async-modal"
+
+cmd = demo_cmds.add_parser(
+    'async-modal',
+    help='Run the async update modal test example',
+    description='Async Update Modal'
 )
+
+
+class DelayArgument(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        # optional value
+        if not values:
+            return
+
+        delay = int(values)
+        if not (1 <= delay <= MAX_SLEEP_TIME_SEC):
+            parser.error(f"{self.dest} must be between 1 and {MAX_SLEEP_TIME_SEC}.")
+
+        setattr(namespace, self.dest, delay)
+
+
+cmd.add_argument(
+    '--delay',
+    help='first boop delay',
+    metavar=f"[1..{MAX_SLEEP_TIME_SEC}]",
+    action=DelayArgument,
+    default=ASYNC_SLEEP_TIME_SEC
+)
+
 
 SESSION_KEY = cmd.prog
 
 
-def session_init():
+def get_origin_data(rqst):
+    return {
+        'channel': rqst.channel,
+        'trigger_id': rqst.trigger_id,
+        'response_url': rqst.response_url
+    }
+
+
+def session_init(rqst):
     # discard previous if exists
+
     session.pop(SESSION_KEY, None)
-    session[SESSION_KEY] = dict()
-    params = session[SESSION_KEY]['params'] = {}
-    params['boops'] = 0
+    user_sdata = session[SESSION_KEY] = dict()
+
+    # save information about the originating request so that we can message
+    # back to the User from the context of View launched from a background
+    # thread
+
+    user_sdata['__origin__'] = get_origin_data(rqst)
+
+    # the two parameters used by this demo is the number of "boop" ocurrances
+    # (counter) and the optional boop-delay that the User can provide via the
+    # CLI.
+
+    params = user_sdata['params'] = dict()
+    params['delay'] = ASYNC_SLEEP_TIME_SEC
+    params['boops'] = 1
 
 
-@demo_cmd.cli.on(cmd.prog)
-def slash_main(
-    rqst: CommandRequest,
-    params: Namespace
-):
-    session_init()
+@slash_demo.cli.on(cmd.prog)
+def slash_main(rqst: CommandRequest, cliargs: argparse.Namespace):
+    session_init(rqst)
+    session[SESSION_KEY]['params']['delay'] = cliargs.delay
     return main(rqst)
 
 
-@demo_cmd.ic.on(cmd.prog)
+@slash_demo.ic.on(cmd.prog)
 def ui_main(rqst):
-    session_init()
+    session_init(rqst)
     return main(rqst)
 
 
 def main(rqst: AnyRequest):
-    Response(rqst).send(delete_original=True)
+    # Response(rqst).send(delete_original=True)
 
     modal = Modal(
-        rqst,
+        rqst, callback=on_main_modal_submit,
         view=View(
             title='First Modal View',
             callback_id=cmd.prog + ".view1",
             close='Cacel',
             submit='Start'),
-        callback=on_main_modal_submit)
+    )
 
     modal.view.add_block(
         SectionBlock(
@@ -71,7 +143,6 @@ def main(rqst: AnyRequest):
     )
 
     res = modal.open()
-
     if not res.get('ok'):
         rqst.app.log.error(res)
 
@@ -81,8 +152,12 @@ def on_main_modal_submit(rqst):
     view = modal.view
     view.callback_id = cmd.prog + ".view2"
     view.title = 'Awaiting Boop'
+
+    params = session[SESSION_KEY]['params']
+    delay = params['delay']
+
     view.blocks[0] = SectionBlock(
-        text="Launching async task for 5 sec update"
+        text=f"Launching async task for {delay} sec update"
     )
 
     view.submit = None
@@ -92,21 +167,30 @@ def on_main_modal_submit(rqst):
     Thread(target=delayed_update_view,
            kwargs={
                'rqst': rqst,
-               'view': modal.view
+               'view': modal.view,
+               'delay': delay
            }).start()
 
     return modal.update()
 
 
-def delayed_update_view(*_vargs, rqst: ViewRequest, view: View):
-    sleep(5)
+def delayed_update_view(rqst: ViewRequest, view: View, delay: int):
+
+    sleep(delay)
 
     modal = Modal(rqst=rqst, view=view, detached=True)
-    modal.view.title = 'Booped!'
-    modal.view.close = 'Done'
+
+    # If the User clicks on Done, then the `done_booping` handler will be
+    # invoked as a result of the view close.
+
+    modal.notify_on_close = done_booping
+
+    view = modal.view
+    view.title = 'Booped!'
+    view.close = 'Done'
 
     view.blocks[0] = SectionBlock(
-        text='First boop after 5 seconds'
+        text=f'First boop after {delay} seconds'
     )
 
     button = view.add_block(
@@ -115,6 +199,7 @@ def delayed_update_view(*_vargs, rqst: ViewRequest, view: View):
             block_id=cmd.prog + ".boop"
         )
     )
+
     button.accessory = ButtonElement(
         text='Boop',
         action_id=button.block_id,
@@ -134,26 +219,36 @@ def delayed_update_view(*_vargs, rqst: ViewRequest, view: View):
 
 
 def on_boop_button(rqst):
+
     params = session[SESSION_KEY]['params']
+
     params['boops'] += 1
     boops = params['boops']
 
     modal = Modal(rqst)
+
     view = modal.view
     view.blocks.pop(0)
     view.blocks.insert(0, SectionBlock(
         text=f'Boop {boops}'
     ))
 
-    modal.notify_on_close = done_booping
-
     res = modal.update()
     if not res.get('ok'):
-        rqst.app.log.error(
-            f'failed to boop: {res}'
-        )
+        rqst.app.log.error(f'failed to boop: {res}')
 
 
 def done_booping(rqst: ViewRequest):
-    params = session[SESSION_KEY]['params']
-    print(f"Booped: {params['boops']}")
+
+    user_sdata = session[SESSION_KEY]
+
+    params = user_sdata['params']
+    origin = user_sdata['__origin__']
+
+    messenger = Messenger(
+        app=rqst.app,
+        response_url=origin['response_url']
+    )
+
+    messenger.send_response(text=f"Booped: {params['boops']}")
+

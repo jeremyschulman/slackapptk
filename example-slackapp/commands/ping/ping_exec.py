@@ -1,11 +1,12 @@
 from argparse import Namespace
+
 from slackapptk.request.command import CommandRequest
 from slackapptk.response import Response
 
-from .cli import ping_cmd
+from .cli import slash_ping, ping_parser
 
 
-@ping_cmd.cli.on(ping_cmd.cmd)
+@slash_ping.cli.on(ping_parser.prog)
 def ping_exec(
     rqst: CommandRequest,
     cliargs: Namespace

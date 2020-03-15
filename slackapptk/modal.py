@@ -106,8 +106,6 @@ class Modal(object):
 
             return self.rqst.client.views_update(**kwargs)
 
-        import pdb
-        pdb.set_trace()
         raise SlackAppTKError(
             f'Attempting to update view in unknown context'
         )

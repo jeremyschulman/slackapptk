@@ -1,10 +1,13 @@
+"""
+This file contains a demonstration of using the slackclient DialogBuilder
+widget to create a (outmoded) Dialog that allows the User to enter some basic
+text fields and then returns a message with the contents of their input.
+"""
 # -----------------------------------------------------------------------------
 # System Imports
 # -----------------------------------------------------------------------------
 
 import json
-from flask import session
-from argparse import Namespace
 
 # -----------------------------------------------------------------------------
 # Public Imports
@@ -14,58 +17,72 @@ from slack.web.classes import (
     extract_json, dialogs, blocks
 )
 
+# -----------------------------------------------------------------------------
+# SlackAppTK Imports
+# -----------------------------------------------------------------------------
+
 from slackapptk.response import Response
-from slackapptk.request.any import AnyRequest
-from slackapptk.request.outmoded import DialogRequest
-from slackapptk.request.command import CommandRequest
+
+from slackapptk.request.all import (
+    AnyRequest,
+    InteractiveMessageRequest,
+    CommandRequest,
+    DialogRequest
+)
 
 # -----------------------------------------------------------------------------
 # Private Imports
 # -----------------------------------------------------------------------------
 
-from .cli import demo_cmd
+from .cli import slash_demo, demo_cmds
 
-cmd = demo_cmd.add_subcommand(
-    'dialog', parser_spec=dict(
-        help='Run the dialog test example',
-        description='Dialog Test'
-    )
+# -----------------------------------------------------------------------------
+#
+#                                 CODE BEGINS
+#
+# -----------------------------------------------------------------------------
+
+# create an argsparser for the '/demo dialog' command
+
+cmd = demo_cmds.add_parser(
+    'dialog',
+    help='Run the dialog test example',
+    description='Dialog Test'
 )
 
-SESSION_KEY = cmd.prog
 
+# bind a callback for when the User enters the complete "/demo dialog" in the
+# Slack client.
 
-def session_init():
-    # discard previous if exists
-    session.pop(SESSION_KEY, None)
-    session[SESSION_KEY] = dict()
-    session[SESSION_KEY]['params'] = {}
-
-
-@demo_cmd.cli.on(cmd.prog)
-def slash_main(
-    rqst: CommandRequest,
-    params: Namespace
-):
-    session_init()
+@slash_demo.cli.on(cmd.prog)
+def slash_main(rqst: CommandRequest):
     return main(rqst)
 
 
-@demo_cmd.ic.on(cmd.prog)
-def ui_main(
-    rqst: AnyRequest
-):
-    session_init()
+# bind a callback for when the User selects this demo from the /demo message
+# containing the menu-selector.
+
+@slash_demo.ic.on(cmd.prog)
+def ui_main(rqst: InteractiveMessageRequest):
     return main(rqst)
 
 
 def main(rqst: AnyRequest):
+
+    # first remove the original message that contains the menu-select.
+
     resp = Response(rqst)
     resp.send(delete_original=True)
+
+    # define the event trigger ID that will be used to associate the dialog
+    # submit button with the callback handler on the event to process the
+    # User's inputs.
 
     event_id = cmd.prog + ".dialog"
 
     rqst.app.ic.dialog.on(event_id, on_dialog_submit)
+
+    # create the dialog wiedget using slackclient
 
     builder = (dialogs.DialogBuilder()
                .title("My Cool Dialog")
@@ -73,6 +90,9 @@ def main(rqst: AnyRequest):
                .state({'value': 123, 'key': "something"})
                .text_area(name="message", label="Message", hint="Enter a message", max_length=500)
                .text_field(name="signature", label="Signature", optional=True, max_length=50))
+
+    # send the dialog to the User for processsing, the `dialog_open` is a
+    # method of the slackclient instance
 
     res = resp.client.dialog_open(dialog=builder.to_dict(),
                                   trigger_id=rqst.trigger_id)
@@ -82,16 +102,18 @@ def main(rqst: AnyRequest):
 
 
 def on_dialog_submit(rqst: DialogRequest, submit):
+    # when the User clicks submit from the dialog, this function is called and
+    # a response message is send to the User showing their inputs; as well as a
+    # state variable that was hardcoded.
+
     resp = Response(rqst)
 
     resp['blocks'] = extract_json([
         blocks.SectionBlock(text=f"""
 Your selections:\n
 *message*: {submit['message']}
-
 *signature*: {submit['signature']}\n            
-
-*state `value`*: {rqst.state['value']}
+*state* `value`: {rqst.state['value']} (hardcoded in demo)
 """)
     ])
 

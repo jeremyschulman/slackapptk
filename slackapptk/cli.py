@@ -9,7 +9,7 @@ parsing utilizing the Python standard argparse module.
 
 from typing import Optional, Callable, Dict, Text, NoReturn
 
-from inspect import stack
+from inspect import stack, signature
 from argparse import ArgumentParser, SUPPRESS, Namespace
 import logging
 
@@ -273,6 +273,13 @@ class SlashCommandCLI(object):
             raise SlackAppTKError(
                 f"No handler for event '{event}'"
             )
+
+        # detect if the callback wants the namespace parameters or not and
+        # invoke the handler accordingly.
+
+        sig_cal = signature(handler)
+        if len(sig_cal.parameters) == 1:
+            return handler(rqst)
 
         return handler(rqst, ns_args)
 

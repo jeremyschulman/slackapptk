@@ -2,13 +2,14 @@ import json
 from typing import Union, Dict
 
 from slackapptk.errors import SlackAppTKUnhandledRequestError
-from slackapptk.request.action_event import BlockActionEvent
+from slackapptk.request.action_event import BlockActionEvent, ActionEvent
 from slackapptk.request.view import ViewRequest, View
 from slackapptk.request.outmoded import *
 
 
 __all__ = [
     'AnyRequest',
+    'ActionEvent',
     'BlockActionRequest',
     'BlockActionEvent',
     'InteractiveRequest'

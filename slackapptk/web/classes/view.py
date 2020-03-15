@@ -114,6 +114,7 @@ class View(JsonObject):
         if view['submit']:
             new_view.submit = view['submit']['text']
 
+        new_view.notify_on_close = view['notify_on_close']
         new_view.view_id = view['id']
         new_view.view_hash = view['hash']
 

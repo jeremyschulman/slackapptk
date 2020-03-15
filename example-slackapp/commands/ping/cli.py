@@ -1,17 +1,21 @@
+from slackapptk.cli import SlackAppTKParser
+
 from app_data import slackapp
-from slackapptk.cli import SlashCommandCLI
 
 from . import main
 
-ping_cmd = slackapp.slash_commands['ping'] = SlashCommandCLI(
-    app=slackapp,
-    version='1.0',
-    cmd='ping',
-    description='Simple ping test',
-    callback=main.ping
+ping_parser = SlackAppTKParser(
+    prog='ping',
+    description='Simple ping test'
 )
 
-ping_cmd.parser.add_argument(
-    'mode', default='private',
+ping_parser.add_argument(
+    'mode',
+    default='private',
     choices=['public', 'private']
+)
+
+slash_ping = slackapp.commands.register(
+    parser=ping_parser,
+    callback=main.ping
 )

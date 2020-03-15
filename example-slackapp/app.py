@@ -14,7 +14,6 @@
 
 import os
 import logging
-import toml
 
 from importlib import import_module
 
@@ -38,9 +37,8 @@ def create_app():
     # -------------------------------------------------------------------------
 
     try:
-        config_file = os.environ['SLACKAPP_CONFIG']
-        config_data = toml.load(open(config_file))
-        slackapp.config.from_obj(config_data)
+        slackapp.config.token = os.environ['SLACK_APP_TOKEN']
+        slackapp.config.signing_secret = os.environ['SLACK_APP_SIGNING_SECRET']
         slackapp.log = log.create_logger()
 
     except Exception as exc:

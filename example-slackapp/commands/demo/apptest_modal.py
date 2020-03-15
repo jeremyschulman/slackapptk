@@ -1,11 +1,21 @@
-#
-# At present slackclient 2.5.0, there are no View and related widgets.  Going to build
-# an example "by hand" given the information here:
-#
-#   https://api.slack.com/reference/surfaces/views
-#
+"""
+/demo modal
 
+This file demonstrates the use of Modals and Input widgets.  This
+example also uses the flask sessions infrastructure to store values
+when the User interacts with Buttons and other components.
+"""
+# -----------------------------------------------------------------------------
+# System Imports
+# -----------------------------------------------------------------------------
+
+from typing import Dict
 import json
+
+# -----------------------------------------------------------------------------
+# Public Imports
+# -----------------------------------------------------------------------------
+
 from flask import session
 
 from slack.web.classes.blocks import (
@@ -18,11 +28,16 @@ from slack.web.classes.elements import (
     ExternalDataSelectElement
 )
 
-# The following are "missing" from the slackclient package, so implemented
-# these using their SDK.  Hopefully these widgets will be availbale in a near
-# term future release.
+# -----------------------------------------------------------------------------
+# SlackAppTK Imports
+# -----------------------------------------------------------------------------
 
 from slackapptk.app import SlackApp
+from slackapptk.request.all import (
+    BlockActionRequest, ActionEvent,
+    ViewRequest
+)
+
 from slackapptk.response import Response
 
 from slackapptk.web.classes.blocks import (
@@ -37,16 +52,31 @@ from slackapptk.web.classes.elements import (
     CheckboxElement
 )
 
-from app_data import slackapp
-from commands.demo.cli import demo_cmd
+# -----------------------------------------------------------------------------
+# Private Imports
+# -----------------------------------------------------------------------------
+
+from commands.demo.cli import slash_demo, demo_cmds
+
+# -----------------------------------------------------------------------------
+#
+#                                 CODE BEGINS
+#
+# -----------------------------------------------------------------------------
 
 
-cmd = demo_cmd.add_subcommand(
-    'modal', parser_spec=dict(
-        help='Run the Modal test example',
-        description='Modal Test'
-    )
+# create a Argsparser for the "/demo modal" command
+
+cmd = demo_cmds.add_parser(
+    'modal',
+    help='Run the Modal test example',
+    description='Modal Test'
 )
+
+
+# The user session key will be the program name of the parser, i.e. "demo
+# modal" but demonstrating this use programatically.  The User interactions
+# will be stored in the sessions in 'params'.
 
 SESSION_KEY = cmd.prog
 
@@ -58,34 +88,47 @@ def session_init():
     session[SESSION_KEY]['params'] = {}
 
 
-@demo_cmd.cli.on(cmd.prog)
-def slash_main(rqst, params):
+# bind the entrypoint handler when the User enters the complete "/demo modal"
+# from the Slack client.
+
+@slash_demo.cli.on(cmd.prog)
+def slash_main(rqst):
     session_init()
     return main(rqst)
 
 
-@demo_cmd.ic.on(cmd.prog)
+# bind the entrypoint handler for when the User selects the modal demo from the
+# main /demo menu-select.
+
+@slash_demo.ic.on(cmd.prog)
 def ui_main(rqst):
     session_init()
     return main(rqst)
 
 
 def main(rqst):
+
     app: SlackApp = rqst.app
     params = session[SESSION_KEY]['params']
 
     # delete the originating message
+
     resp = Response(rqst)
     resp.send(delete_original=True)
 
-    event_id = cmd.prog + ".view1"
+    # define the event ID for when the User clicks the Submit button on the
+    # Modal. bind that event to the code handler that will process the data.
 
-    slackapp.ic.view.on(event_id, on_main_modal_submit)
+    event_id = cmd.prog + ".view1"
+    app.ic.view.on(event_id, on_main_modal_submit)
 
     priv_data = {
         'name': 'Jeremy',
         'state': "NC"
     }
+
+    # create a Modal instace, which will also defined a View when one is not
+    # provided.  Tie the submit callback ID to the envent_id value
 
     modal = Modal(rqst)
     view = modal.view = View(
@@ -98,6 +141,7 @@ def main(rqst):
     # -------------------------------------------------------------------------
     # Create a button block:
     # Each time the User clicks it a counter will be incremented by 1.
+    # The button click count is stored in the session params.
     # -------------------------------------------------------------------------
 
     button1 = view.add_block(SectionBlock(
@@ -112,10 +156,10 @@ def main(rqst):
 
     params['clicks'] = 0
 
+    # noinspection PyUnusedLocal
     @app.ic.block_action.on(button1.block_id)
-    def remember_button(_onb):
-        _params = session[SESSION_KEY]['params']
-        _params['clicks'] += 1
+    def remember_button(btn_rqst: BlockActionRequest):
+        session[SESSION_KEY]['params']['clicks'] += 1
 
     # -------------------------------------------------------------------------
     # Create a Checkboxes block:
@@ -140,9 +184,8 @@ def main(rqst):
         )
 
     @app.ic.block_action.on(checkbox.block_id)
-    def remember_check(_oncb, action):
-        _params = session[SESSION_KEY]['params']
-        _params['checkboxes'] = action.value
+    def remember_check(cb_rqst: BlockActionRequest, action: ActionEvent):
+        session[SESSION_KEY]['params']['checkboxes'] = action.value
 
     # -------------------------------------------------------------------------
     # Create an Input block:
@@ -163,9 +206,14 @@ def main(rqst):
     # -------------------------------------------------------------------------
 
     host_selector = view.add_block(InputBlock(
-        label='Next input',
+        label='Next input selector ... start typing',
         optional=True,
         block_id=event_id + ".ext1"))
+
+    # -------------------------------------------------------------------------
+    # Create a menu-select using external source.  "Fake" the external
+    # source input data by returning static content ;-)
+    # -------------------------------------------------------------------------
 
     host_selector.element = ExternalDataSelectElement(
         placeholder='hosts ..',
@@ -230,10 +278,13 @@ def main(rqst):
 
     res = modal.open(callback=on_main_modal_submit)
     if not res.get('ok'):
-        slackapp.log.error(json.dumps(res, indent=3))
+        app.log.error(json.dumps(res, indent=3))
 
 
-def on_main_modal_submit(rqst, input_values):
+def on_main_modal_submit(
+    rqst: ViewRequest,
+    input_values: Dict
+):
     params = session[SESSION_KEY]['params']
     
     # The input_values is a dictionary of key=action_id and value=user-input
