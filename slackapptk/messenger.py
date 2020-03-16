@@ -18,14 +18,9 @@ from typing import Optional, Any
 import requests
 from collections import UserDict
 from slack.web.client import WebClient
-from slack.web.classes.blocks import SectionBlock
 
 
-from slackapptk.app import SlackApp
-
-__all__ = [
-    "Messenger"
-]
+__all__ = ["Messenger"]
 
 
 class Messenger(UserDict):
@@ -36,7 +31,7 @@ class Messenger(UserDict):
     """
     def __init__(
         self,
-        app: SlackApp,
+        app,        # SlackApp
         response_url: Optional[str] = None,
         channel: Optional[str] = None,
         thread_ts: Optional[str] = None
@@ -76,33 +71,11 @@ class Messenger(UserDict):
 
         self.client = WebClient(self.app.config.token)
 
-    def text(self, text: str):
-        """
-        Convenience method to add a SectionBlock with text as the first block.
-
-        Parameters
-        ----------
-        text: str
-            Text to add, can be mrkdwn formatted
-
-        Returns
-        -------
-        Messenger
-            For method chaining
-        """
-        blocks = self.setdefault('blocks', [])
-        blocks.insert(0, SectionBlock(text=text).to_dict())
-        return self
-
     def send_response(
         self,
-        text: Optional[str] = None,
         response_url: Optional[str] = None,
         **kwargs: Optional[Any]
     ):
-        if text:
-            self.text(text)
-
         res = self.request.post(
             response_url or self.response_url,
             json=dict(
@@ -115,36 +88,28 @@ class Messenger(UserDict):
 
         return res
 
-    # def send_channel(
-    #     self,
-    #     text: Optional[str] = None,
-    #     channel: Optional[str] = None,
-    #     **kwargs: Optional[Any]
-    # ):
-    #     if text:
-    #         self.text(text)
-    #
-    #     return self.client.chat_postMessage(
-    #         channel=channel or self.channel,
-    #         **self,                 # contets of message
-    #         **kwargs                # any other API fields
-    #     )
+    def send(self, **kwargs):
+        """
+        Used to send a message to the User.
 
-    def send(
-        self, *,
-        text: Optional[str] = None,
-        channel: Optional[str] = None,
-        private: Optional[bool] = False,
-        **kwargs
-     ):
-        if text:
-            self.text(text)
+        Other Parameters
+        ----------------
+        if 'user' in kwargs, this indicates the Caller wants to send a private
+        message (via postEphemeral)
 
-        api_call = (self.client.chat_postEphemeral if private
-                    else self.client.chat_postMessage)
+        if 'channel' in kwargs, this indicates the Caller wants to direct
+        the message to channel, rather than original channel value from
+        instance initialization.
+        """
+
+        if 'user' in kwargs:
+            api_call = self.client.chat_postEphemeral
+
+        else:
+            api_call = self.client.chat_postMessage
 
         return api_call(
-            channel=channel or self.channel,
+            channel=kwargs.get('channel') or self.channel,
             # contents of messenger[UserDict]
             **self,
             # any other API fields provided by Caller

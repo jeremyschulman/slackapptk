@@ -195,7 +195,7 @@ class SlackApp(object):
             The results of the code handler that ultimately processes the
             request; which is slash command specific.
         """
-        return self.commands.run(name=name,rqst=rqst)
+        return self.commands.run(name=name, rqst=rqst)
 
     # -------------------------------------------------------------------------
     # Request handlers - per payload

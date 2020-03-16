@@ -25,6 +25,7 @@ def ping_exec(
     resp = Response(rqst)
 
     if cliargs.mode == 'public':
-        resp.send_public('*public* Pong!')
+        resp.send(text='*public* Pong!')
     else:
-        resp.send_ephemeral('*private* Pong!')
+        resp.send(text='*private* Pong!',
+                  private=rqst.user_id)

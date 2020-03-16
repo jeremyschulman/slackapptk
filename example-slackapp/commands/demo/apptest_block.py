@@ -91,8 +91,10 @@ def main(rqst: Union[InteractiveMessageRequest, CommandRequest]) -> None:
 
         btn_resp = Response(btn_rqst)
 
-        btn_resp.send(f"At timestamp `{btn_action.data['action_ts']}`, "
-                      f"you pressed: *{btn_action.value.title()}*")
+        btn_resp.send_response(text=(
+            f"At timestamp `{btn_action.data['action_ts']}`, "
+            f"you pressed: *{btn_action.value.title()}*")
+        )
 
     # -------------------------------------------------------------------------
     # create a message to send to the User that has two buttons; and when

@@ -12,5 +12,4 @@ def ping(
     """
     Called with no params, default is to ping privately.
     """
-    resp = Response(rqst)
-    resp.send_ephemeral("*private* Pong!")
+    Response(rqst).send_response(text="*private* Pong!")

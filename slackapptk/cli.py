@@ -181,14 +181,14 @@ class SlackAppTKParser(ArgumentParser):
 
         helptext = self.format_help()
 
-        resp.send(
+        resp.send_response(text=(
             f'Hi <@{rqst.user_id}>, here is help on the `{cmd_str}` command:\n\n'
-            f"```{helptext}```"
+            f"```{helptext}```")
         )
 
     @staticmethod
     def send_version(rqst, versiontext) -> None:
-        Response(rqst).send(versiontext)
+        Response(rqst).send_response(text=versiontext)
 
     @staticmethod
     def send_help_on_error(rqst, errmsg, helptext):
