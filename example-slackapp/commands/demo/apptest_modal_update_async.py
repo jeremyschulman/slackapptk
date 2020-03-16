@@ -31,7 +31,7 @@ from slack.web.classes.elements import (
 from slackapptk.request.view import ViewRequest, AnyRequest
 from slackapptk.request.command import CommandRequest
 from slackapptk.modal import Modal, View
-from slackapptk.messenger import Messenger
+from slackapptk.response import Messenger, Response
 
 # -----------------------------------------------------------------------------
 # Private Imports
@@ -115,17 +115,21 @@ def session_init(rqst):
 def slash_main(rqst: CommandRequest, cliargs: argparse.Namespace):
     session_init(rqst)
     session[SESSION_KEY]['params']['delay'] = cliargs.delay
+
     return main(rqst)
 
 
 @slash_demo.ic.on(cmd.prog)
 def ui_main(rqst):
     session_init(rqst)
+
+    # delete the originating message; just for aesthetics
+    Response(rqst).send_response(delete_original=True)
+
     return main(rqst)
 
 
 def main(rqst: AnyRequest):
-    # Response(rqst).send(delete_original=True)
 
     modal = Modal(
         rqst, callback=on_main_modal_submit,
@@ -251,4 +255,3 @@ def done_booping(rqst: ViewRequest):
     )
 
     messenger.send_response(text=f"Booped: {params['boops']}")
-

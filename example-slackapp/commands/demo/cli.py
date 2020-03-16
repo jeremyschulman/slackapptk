@@ -1,3 +1,4 @@
+from pkg_resources import get_distribution
 from slackapptk.cli import SlackAppTKParser
 
 from app_data import slackapp
@@ -12,7 +13,7 @@ demo_parser = SlackAppTKParser(
 demo_parser.add_argument(
     '-v', '--version',
     action='version',
-    version='%(prog)s 1.0'
+    version='%(prog)s ' + get_distribution('slackapptk').version
 )
 
 demo_cmds = demo_parser.add_subparsers(

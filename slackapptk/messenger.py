@@ -13,11 +13,13 @@
 #  limitations under the License.
 
 from typing import Optional, Any
+import asyncio
+import aiohttp
+from aiohttp import ClientResponse
 
-
-import requests
 from collections import UserDict
 from slack.web.client import WebClient
+from slack.errors import SlackApiError
 
 
 __all__ = ["Messenger"]
@@ -64,29 +66,58 @@ class Messenger(UserDict):
         if thread_ts:
             self['thread_ts'] = thread_ts
 
-        if response_url:
-            self.request = requests.Session()
-            self.request.headers["Content-Type"] = "application/json"
-            self.request.verify = False
-
         self.client = WebClient(self.app.config.token)
 
+    # async def _request(self, *, api_url, req_args):
+    #
+    #     session = aiohttp.ClientSession(
+    #         timeout=aiohttp.ClientTimeout(total=self.client.timeout)
+    #     )
+    #
+    #     res = await session.post(api_url, json=req_args)
+    #     await session.close()
+    #     return res
+
+    # noinspection PyProtectedMember
     def send_response(
         self,
         response_url: Optional[str] = None,
         **kwargs: Optional[Any]
     ):
-        res = self.request.post(
-            response_url or self.response_url,
-            json=dict(
-                # contents of messenger[UserDict]
-                **self,
-                # any other API fields
-                **kwargs
-            )
+
+        req_args = dict(
+            # contents of messenger[UserDict]
+            **self,
+            # any other API fields
+            **kwargs
         )
 
-        return res
+        if self.client._event_loop is None:
+            self.client._event_loop = self.client._get_event_loop()
+
+        api_url = response_url or self.response_url
+
+        future = asyncio.ensure_future(
+            self.client._request(
+                http_verb='POST',
+                api_url=api_url,
+                req_args=dict(json=req_args)
+            ),
+            loop=self.client._get_event_loop()
+        )
+
+        res = self.client._event_loop.run_until_complete(future)
+        status = res['status_code']
+
+        if status != 200:
+            raise SlackApiError(
+                message='Failed to send response_url: {}: status={}'.format(
+                    api_url, status
+                ),
+                response=res
+            )
+
+        return True
 
     def send(self, **kwargs):
         """

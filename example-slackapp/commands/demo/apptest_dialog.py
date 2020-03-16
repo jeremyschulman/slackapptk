@@ -64,15 +64,14 @@ def slash_main(rqst: CommandRequest):
 
 @slash_demo.ic.on(cmd.prog)
 def ui_main(rqst: InteractiveMessageRequest):
+
+    # delete the originating message; just for aesthetics
+    Response(rqst).send_response(delete_original=True)
+
     return main(rqst)
 
 
 def main(rqst: AnyRequest):
-
-    # first remove the original message that contains the menu-select.
-
-    resp = Response(rqst)
-    resp.send(delete_original=True)
 
     # define the event trigger ID that will be used to associate the dialog
     # submit button with the callback handler on the event to process the
@@ -94,6 +93,7 @@ def main(rqst: AnyRequest):
     # send the dialog to the User for processsing, the `dialog_open` is a
     # method of the slackclient instance
 
+    resp = Response(rqst)
     res = resp.client.dialog_open(dialog=builder.to_dict(),
                                   trigger_id=rqst.trigger_id)
 
@@ -117,4 +117,7 @@ Your selections:\n
 """)
     ])
 
-    resp.send()
+    res = resp.send_response()
+    # if res.status != 200:
+    #     rqst.app.log.error(json.dumps(res))
+    #

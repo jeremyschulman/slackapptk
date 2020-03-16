@@ -22,6 +22,13 @@ $ source setup.env
 If you want to change the Flask app port used for this demonstration, you can
 edit the file [flaskapp.env](flaskapp.env) and change the `PORT` value. 
 
+You will then need to create a virtual enviornment, activate it, and
+then install the example app requirements:
+
+```shell script
+(venv)$ pip install -r requirements.txt
+```
+
 # Running the example
 
 Once you have everything configured and setup properly, you can start the example 

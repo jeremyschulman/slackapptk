@@ -103,6 +103,10 @@ def slash_main(rqst):
 @slash_demo.ic.on(cmd.prog)
 def ui_main(rqst):
     session_init()
+
+    # delete the originating message; just for aesthetics
+    Response(rqst).send_response(delete_original=True)
+
     return main(rqst)
 
 
@@ -110,11 +114,6 @@ def main(rqst):
 
     app: SlackApp = rqst.app
     params = session[SESSION_KEY]['params']
-
-    # delete the originating message
-
-    resp = Response(rqst)
-    resp.send(delete_original=True)
 
     # define the event ID for when the User clicks the Submit button on the
     # Modal. bind that event to the code handler that will process the data.

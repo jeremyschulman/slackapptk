@@ -57,14 +57,14 @@ def slash_main(rqst: CommandRequest):
 
 @slash_demo.ic.on(cmd.prog)
 def ui_main(rqst: AnyRequest):
+
+    # delete the originating message; just for aesthetics
+    Response(rqst).send_response(delete_original=True)
+
     return main(rqst)
 
 
 def main(rqst: AnyRequest):
-
-    # clear the originating message
-
-    Response(rqst).send(delete_original=True)
 
     # create a Modal and view, setting the callback so that when the User
     # clicks the "Next" button the code in on_main_modal_submit will be used as

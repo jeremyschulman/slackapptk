@@ -72,11 +72,13 @@ def slash_main(rqst: CommandRequest):
 
 @slash_demo.ic.on(cmd.prog)
 def ui_main(rqst: InteractiveMessageRequest):
+    resp = Response(rqst)
+    resp.send_response(delete_original=True)
+
     return main(rqst)
 
 
 def main(rqst: Union[InteractiveMessageRequest, CommandRequest]) -> None:
-    resp = Response(rqst)
 
     block_id = cmd.prog + '.main.button'
 
