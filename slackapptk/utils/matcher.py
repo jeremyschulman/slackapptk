@@ -1,14 +1,14 @@
 from typing import Optional, Callable
 
 import re
-from fnmatch import fnmatch
+import fnmatch
 import sre_constants
 
 
-__all__ = ['make_matcher']
+__all__ = ['match_maker']
 
 
-def make_matcher(
+def match_maker(
     pattern: str,
     regex: Optional[bool] = False
 ) -> Callable:
@@ -32,24 +32,24 @@ def make_matcher(
     """
 
     # if not regular expression it will be treated as glob wildcard
+    # translate the glob pattern to a regex pattern so we can use
+    # the same regex processing below.
 
     if not regex:
-        def fnmatch_matcher(value):
-            return fnmatch(value, pattern)
+        pattern = fnmatch.translate(pattern)
 
-        return fnmatch_matcher
-
-    # regular expression based matching
+    # create the pattern matching ignoring case.
 
     try:
-        re_pattern = re.compile(pattern, re.IGNORECASE)
+        match = re.compile(pattern, re.IGNORECASE).match
 
     except sre_constants.error:
         raise ValueError(
             f'Bad regular expression: {pattern}',
         )
 
-    def regex_matcher(value):
-        return bool(re_pattern.match(value))
+    def matcher(value):
+        return bool(match(value))
 
-    return regex_matcher
+    matcher.pattern = pattern
+    return matcher
