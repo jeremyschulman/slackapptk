@@ -68,16 +68,6 @@ class Messenger(UserDict):
 
         self.client = WebClient(self.app.config.token)
 
-    # async def _request(self, *, api_url, req_args):
-    #
-    #     session = aiohttp.ClientSession(
-    #         timeout=aiohttp.ClientTimeout(total=self.client.timeout)
-    #     )
-    #
-    #     res = await session.post(api_url, json=req_args)
-    #     await session.close()
-    #     return res
-
     # noinspection PyProtectedMember
     def send_response(
         self,
@@ -119,18 +109,20 @@ class Messenger(UserDict):
 
         return True
 
-    def send(self, **kwargs):
+    def send(self, channel=None, **kwargs):
         """
-        Used to send a message to the User.
+        Send a message to the User.
+
+        Parameters
+        ----------
+        channel: str
+           Direct the message to channel, rather than original channel value
+           from instance initialization.
 
         Other Parameters
         ----------------
-        if 'user' in kwargs, this indicates the Caller wants to send a private
-        message (via postEphemeral)
-
-        if 'channel' in kwargs, this indicates the Caller wants to direct
-        the message to channel, rather than original channel value from
-        instance initialization.
+        user: str
+            send a private message (via postEphemeral) to user
         """
 
         if 'user' in kwargs:
@@ -140,7 +132,7 @@ class Messenger(UserDict):
             api_call = self.client.chat_postMessage
 
         return api_call(
-            channel=kwargs.get('channel') or self.channel,
+            channel=channel or self.channel,
             # contents of messenger[UserDict]
             **self,
             # any other API fields provided by Caller

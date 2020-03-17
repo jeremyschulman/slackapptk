@@ -266,12 +266,16 @@ class SlashCommandCLI(object):
         except SlackAppTKParserExit:
             return ''
 
-        event = getattr(ns_args, NS_ATTR_CMD)
+        # the ns_args will have the cmd event _OR_ the User entered only up to
+        # a sub parser name which will be used to identify the event.
+
+        event = getattr(ns_args, NS_ATTR_CMD) or ' '.join([self.parser.prog] + rqst.argv)
         handler = first(self.cli.listeners(event))
 
         if handler is None:
+            cmd_str = ' '.join(rqst.argv)
             raise SlackAppTKError(
-                f"No handler for event '{event}'"
+                f"{cmd_str}: no handler for event '{event}'"
             )
 
         # detect if the callback wants the namespace parameters or not and
