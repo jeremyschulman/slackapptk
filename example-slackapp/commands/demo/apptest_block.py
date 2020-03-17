@@ -81,6 +81,11 @@ def ui_main(rqst: InteractiveMessageRequest):
 def main(rqst: Union[InteractiveMessageRequest, CommandRequest]) -> None:
 
     block_id = cmd.prog + '.main.button'
+    
+    # create a Slack message that will be used to respond to the User's
+    # interaction which was the invocation of the /demo command.
+
+    resp = Response(rqst)
 
     # -------------------------------------------------------------------------
     # define the button callback handler to send a response back to the
@@ -104,7 +109,7 @@ def main(rqst: Union[InteractiveMessageRequest, CommandRequest]) -> None:
     # -------------------------------------------------------------------------
 
     user_id = rqst.user_id
-
+    
     resp['blocks'] = extract_json([
         SectionBlock(text=f'Hi there <@{user_id}>!'),
         DividerBlock(),

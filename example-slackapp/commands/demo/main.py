@@ -62,7 +62,7 @@ def main_demo(
 
     resp = Response(rqst)
 
-    resp.text = (
+    resp['text'] = (
         f"Hi <@{rqst.user_id}>, I see you'd like to run a test command.\n"
         "Let's get started."
     )
