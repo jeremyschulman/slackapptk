@@ -75,11 +75,8 @@ class SlackAppCommands(object):
         self.app = app
         self._registry = dict()
 
-    def register(self, parser, callback):
-        cmd = self._registry[parser.prog] = SlashCommandCLI(
-            parser=parser,
-            callback=callback
-        )
+    def register(self, parser):
+        cmd = self._registry[parser.prog] = SlashCommandCLI(parser=parser)
         return cmd
 
     def run(
@@ -114,22 +111,7 @@ class SlackAppCommands(object):
             self.app.log.error(emsg)
             raise SlackAppTKError(emsg, name, rqst)
 
-        # if the User provided command line parameters then "run" their
-        # command; code execution will pickup via a bound callback handler
-        # depending on what the User entered; which is slash-commmand specific.
-
-        if len(rqst.argv):
-            return slashcli.run(rqst)
-
-        # Otherwise, the User did not provide any additional CLI options,
-        # continue code execution at the SlashCLI callback handler
-
-        if not slashcli.callback:
-            emsg = f'Missing slash command callback for {name}'
-            self.app.log.error(emsg)
-            raise SlackAppTKError(emsg, name, rqst)
-
-        return slashcli.callback(slashcli, rqst)
+        return slashcli.run(rqst)
 
 
 class SlackApp(object):

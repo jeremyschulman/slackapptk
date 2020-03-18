@@ -7,7 +7,7 @@ parsing utilizing the Python standard argparse module.
 # System Imports
 # -----------------------------------------------------------------------------
 
-from typing import Optional, Callable, Dict, Text, NoReturn
+from typing import Optional, Dict, Text, NoReturn
 
 from inspect import stack, signature
 from argparse import ArgumentParser, SUPPRESS, Namespace
@@ -213,12 +213,11 @@ class SlackAppTKParser(ArgumentParser):
 
 class SlashCommandCLI(object):
 
-    def __init__(self, parser: SlackAppTKParser, callback: Callable):
+    def __init__(self, parser: SlackAppTKParser):
         self.name = parser.prog
         self.parser = parser
         self.ic = pyee.EventEmitter()
         self.cli = pyee.EventEmitter()
-        self.callback = callback
 
     def run(self, rqst, event=None):
 

@@ -14,7 +14,7 @@
 
 from setuptools import setup, find_packages
 
-package_version = '0.7.0'
+package_version = '0.8.0'
 package_name = 'slackapptk'
 
 

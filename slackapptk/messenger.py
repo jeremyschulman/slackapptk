@@ -14,8 +14,6 @@
 
 from typing import Optional, Any
 import asyncio
-import aiohttp
-from aiohttp import ClientResponse
 
 from collections import UserDict
 from slack.web.client import WebClient
@@ -74,7 +72,34 @@ class Messenger(UserDict):
         response_url: Optional[str] = None,
         **kwargs: Optional[Any]
     ):
+        """
+        This method is used to send a message via the response_url rathern
+        than using the api.slack.com endpoints.
 
+        Parameters
+        ----------
+        response_url: str
+            The message will be POST to this URL; originates from a message received
+            from api.slack.com
+
+        Other Parameters
+        ----------------
+        Any other kwargs are passed as content into the message.
+
+        Raises
+        ------
+        SlackApiError upon error sending; HTTP status code other
+        than 200.
+
+        Returns
+        -------
+        True if the message was sent without error (HTTP code 200).
+
+        Notes
+        -----
+        Ideally this method should be a part of the `slackclient` BaseClient class to avoid
+        using the internals of the client instance.  TODO: open issue with that repo.
+        """
         req_args = dict(
             # contents of messenger[UserDict]
             **self,

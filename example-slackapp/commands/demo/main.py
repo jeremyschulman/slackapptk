@@ -32,9 +32,14 @@ from slack.web.classes import (
 # SlackAppTK Imports
 # -----------------------------------------------------------------------------
 
-from slackapptk.cli import SlashCommandCLI
 from slackapptk.request.command import CommandRequest
 from slackapptk.response import Response
+
+# -----------------------------------------------------------------------------
+# Private Imports
+# -----------------------------------------------------------------------------
+
+from .cli import demo_parser, slash_demo
 
 # -----------------------------------------------------------------------------
 #
@@ -46,16 +51,15 @@ from slackapptk.response import Response
 COLOR_GREEN = '#008000'
 
 
-def main_demo(
-    slash_demo: SlashCommandCLI,
-    rqst: CommandRequest
-):
+@slash_demo.cli.on(demo_parser.prog)
+def main_demo(rqst: CommandRequest):
+
     # The callback_id will be based on the parser prog name, which is "demo" in
     # this case; but showing the use programatically.  This value will be used
     # to bind to the Slack message options and the callback which will be used
     # to run the command associated with the User's selection.
 
-    callback_id = slash_demo.parser.prog
+    callback_id = demo_parser.prog
 
     # create a Slack message that will be used to respond to the User's
     # interaction which was the invocation of the /demo command.
@@ -72,7 +76,7 @@ def main_demo(
     # the CLI sub parser items; which are made available through a `choices`
     # property of the SlackAppTKParser instance.
 
-    demo_choices = slash_demo.parser.choices
+    demo_choices = demo_parser.choices
 
     # Using those command choices, create a list of Option widgets whose label
     # comes from the CLI command help string and the value is the CLI program
