@@ -24,6 +24,10 @@ from slack.web.classes.elements import (
     ButtonElement
 )
 
+from slack.web.classes.objects import (
+    PlainTextObject
+)
+
 # -----------------------------------------------------------------------------
 # SlackAppTK Imports
 # -----------------------------------------------------------------------------
@@ -134,15 +138,15 @@ def main(rqst: AnyRequest):
     modal = Modal(
         rqst, callback=on_main_modal_submit,
         view=View(
+            type="modal",
             title='First Modal View',
             callback_id=cmd.prog + ".view1",
-            close='Cacel',
-            submit='Start'),
-    )
+            close='Cancel',
+            submit='Start'))
 
     modal.view.add_block(
-        SectionBlock(
-            text='Click the Start button to begin.'
+        SectionBlock(text=
+            PlainTextObject(text='Click the Start button to begin.')
         )
     )
 
@@ -155,18 +159,18 @@ def on_main_modal_submit(rqst):
     modal = Modal(rqst)
     view = modal.view
     view.callback_id = cmd.prog + ".view2"
-    view.title = 'Awaiting Boop'
+    view.title = PlainTextObject(text='Awaiting Boop')
 
     params = session[SESSION_KEY]['params']
     delay = params['delay']
 
     view.blocks[0] = SectionBlock(
-        text=f"Launching async task for {delay} sec update"
+        text=PlainTextObject(text=f"Launching async task for {delay} sec update")
     )
 
     view.submit = None
 
-    rqst.app.log.debug(modal.view.view_hash)
+    rqst.app.log.debug(modal.view.hash)
 
     Thread(target=delayed_update_view,
            kwargs={
@@ -190,16 +194,16 @@ def delayed_update_view(rqst: ViewRequest, view: View, delay: int):
     modal.notify_on_close = done_booping
 
     view = modal.view
-    view.title = 'Booped!'
-    view.close = 'Done'
+    view.title = PlainTextObject(text='Booped!')
+    view.close = PlainTextObject(text='Done')
 
     view.blocks[0] = SectionBlock(
-        text=f'First boop after {delay} seconds'
+        text=PlainTextObject(text=f'First boop after {delay} seconds')
     )
 
     button = view.add_block(
         SectionBlock(
-            text='Click button to boop again.',
+            text=PlainTextObject(text='Click button to boop again.'),
             block_id=cmd.prog + ".boop"
         )
     )
@@ -234,7 +238,7 @@ def on_boop_button(rqst):
     view = modal.view
     view.blocks.pop(0)
     view.blocks.insert(0, SectionBlock(
-        text=f'Boop {boops}'
+        text=PlainTextObject(text=f'Boop {boops}')
     ))
 
     res = modal.update()

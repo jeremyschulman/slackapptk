@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 from enum import IntEnum, auto
 
-
+from slack.web.classes.objects import PlainTextObject
 from slackapptk.request.any import AnyRequest
 from slackapptk.web.classes.view import View
 from slackapptk.errors import SlackAppTKError
@@ -71,8 +71,7 @@ class Modal(object):
         def from_payload_or_new():
             if 'view' in rqst.rqst_data:
                 return View.from_view(rqst.rqst_data['view'])
-
-            return View()
+            return View(type="modal")
 
         if view and not isinstance(view, View):
             raise SlackAppTKError(
@@ -93,7 +92,10 @@ class Modal(object):
     @with_callback
     def update(self):
         if self.rqst.rqst_type == 'view_submission' and not self.detached:
-            return self.view.update_response()
+            return {
+                'response_action': 'update',
+                'view': self.view.to_dict()
+            }
 
         if hasattr(self.view, 'view_id'):
             kwargs = dict(
@@ -113,7 +115,10 @@ class Modal(object):
     @with_callback
     def push(self):
         if self.rqst.rqst_type == 'view_submission':
-            return self.view.push_response()
+            return {
+            'response_action': 'push',
+            'view': self.view.to_dict()
+        }
 
         return self.rqst.client.views_push(
             trigger_id=self.rqst.trigger_id,

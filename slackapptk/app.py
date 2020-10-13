@@ -126,7 +126,7 @@ class SlackApp(object):
         #   https://api.slack.com/reference/interaction-payloads
         #   https://api.slack.com/interactivity/handling#payloads
 
-        self._ic_hanlders = {
+        self._ic_handlers = {
 
             'block_actions': self._handle_block_action,
             'message_actions': self._handle_message_action,
@@ -211,7 +211,7 @@ class SlackApp(object):
 
         """
         p_type = rqst.rqst_data['type']
-        return self._ic_hanlders[p_type](rqst)
+        return self._ic_handlers[p_type](rqst)
 
     def handle_select_request(
         self,

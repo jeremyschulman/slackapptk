@@ -241,7 +241,7 @@ class SlashCommandCLI(object):
             return handler(rqst)
 
         # ---------------------------------------------------------------------
-        # Here the User entered a "/comamnd" and this code will parse the input
+        # Here the User entered a "/command" and this code will parse the input
         # to locate the handler responsible for executing the command.  During
         # this processing, if the User invoked either "--help" or "--version",
         # the appropriate output will be sent back to the User, and this
