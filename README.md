@@ -18,6 +18,10 @@ in `slackapptk.web` that are not yet available in slackclient; and as slackclien
 these widgets will be depreciated_
 
 
+# NOTE: Slack Client 2.9.1 Release Available
+
+If you are looking to develop on the Slack Client 2.9.1 release, please use the branch `dev_2_9_1`.
+
 # TLDR; See working example
 
 The documentation for using `slackapptk` is currently under development.  That
