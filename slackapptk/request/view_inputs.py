@@ -18,6 +18,7 @@ VIEW_INPUT_TYPE_VALUE = {
     'users_select': lambda e: e.get('selected_user'),
     'conversations_select': lambda e: e.get('selected_conversation'),
     'channels_select': lambda e: e.get('selected_channel'),
+    'radio_buttons': lambda e: e.get('selected_option', {}).get('value'),
 
     # multi-select elements
     'multi_static_select': lambda e: [i['value'] for i in e.get('selected_options', {})],

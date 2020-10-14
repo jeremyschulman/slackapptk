@@ -12,13 +12,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from typing import Optional, Any
 import asyncio
-
 from collections import UserDict
-from slack.web.client import WebClient
-from slack.errors import SlackApiError
+from typing import Any, Optional
 
+from slack.errors import SlackApiError
+from slack.web.client import WebClient
+from slack.web.async_internal_utils import _get_event_loop
 
 __all__ = ["Messenger"]
 
@@ -108,7 +108,7 @@ class Messenger(UserDict):
         )
 
         if self.client._event_loop is None:
-            self.client._event_loop = self.client._get_event_loop()
+            self.client._event_loop = _get_event_loop()
 
         api_url = response_url or self.response_url
 
@@ -118,7 +118,7 @@ class Messenger(UserDict):
                 api_url=api_url,
                 req_args=dict(json=req_args)
             ),
-            loop=self.client._get_event_loop()
+            loop=_get_event_loop()
         )
 
         res = self.client._event_loop.run_until_complete(future)

@@ -9,54 +9,44 @@ when the User interacts with Buttons and other components.
 # System Imports
 # -----------------------------------------------------------------------------
 
-from typing import Dict
 import json
+from typing import Dict
+
+from commands.demo.cli import demo_cmds, slash_demo
+from flask import session
+from slack.web.classes import extract_json
+from slack.web.classes.blocks import InputBlock, SectionBlock
+from slack.web.classes.elements import (ButtonElement, CheckboxesElement,
+                                        DatePickerElement,
+                                        ExternalDataSelectElement, Option,
+                                        PlainTextInputElement, SelectElement,
+                                        StaticMultiSelectElement)
+from slack.web.classes.objects import MarkdownTextObject, PlainTextObject
+from slackapptk.app import SlackApp
+from slackapptk.modal import Modal, View
+from slackapptk.request.all import ActionEvent, BlockActionRequest, ViewRequest
+from slackapptk.response import Response
 
 # -----------------------------------------------------------------------------
 # Public Imports
 # -----------------------------------------------------------------------------
 
-from flask import session
 
-from slack.web.classes.blocks import (
-    SectionBlock, extract_json
-)
 
-from slack.web.classes.elements import (
-    ButtonElement, Option,
-    DatePickerElement, SelectElement,
-    ExternalDataSelectElement
-)
+
+
 
 # -----------------------------------------------------------------------------
 # SlackAppTK Imports
 # -----------------------------------------------------------------------------
 
-from slackapptk.app import SlackApp
-from slackapptk.request.all import (
-    BlockActionRequest, ActionEvent,
-    ViewRequest
-)
 
-from slackapptk.response import Response
 
-from slackapptk.web.classes.blocks import (
-    InputBlock
-)
-
-from slackapptk.modal import Modal, View
-
-from slackapptk.web.classes.elements import (
-    MultiSelectElement,
-    PlainTextElement,
-    CheckboxElement
-)
 
 # -----------------------------------------------------------------------------
 # Private Imports
 # -----------------------------------------------------------------------------
 
-from commands.demo.cli import slash_demo, demo_cmds
 
 # -----------------------------------------------------------------------------
 #
@@ -131,11 +121,12 @@ def main(rqst):
 
     modal = Modal(rqst)
     view = modal.view = View(
-        title='Ohai Modal!',
+        type="modal",
+        title=PlainTextObject(text="Awesome Modal"),
         callback_id=event_id,
-        close='Cacel',
-        submit='Next',
-        private_metadata=priv_data)
+        close=PlainTextObject(text="Cancel"),
+        submit=PlainTextObject(text="Next"),
+        private_metadata=str(priv_data))
 
     # -------------------------------------------------------------------------
     # Create a button block:
@@ -144,7 +135,7 @@ def main(rqst):
     # -------------------------------------------------------------------------
 
     button1 = view.add_block(SectionBlock(
-        text="It's Block Kit...but _in a modal_",
+        text=PlainTextObject(text="It's Block Kit...but _in a modal_"),
         block_id=event_id + ".button1"))
 
     button1.accessory = ButtonElement(
@@ -173,10 +164,10 @@ def main(rqst):
     params['checkboxes'] = checkbox_options[0].value
 
     checkbox = view.add_block(SectionBlock(
-        text='Nifty checkboxes',
+        text=PlainTextObject(text='Nifty checkboxes'),
         block_id=event_id + ".checkbox"))
 
-    checkbox.accessory = CheckboxElement(
+    checkbox.accessory = CheckboxesElement(
             action_id=checkbox.block_id,
             options=checkbox_options,
             initial_options=[checkbox_options[0]]
@@ -192,8 +183,8 @@ def main(rqst):
     # -------------------------------------------------------------------------
 
     view.add_block(InputBlock(
-        label='First input',
-        element=PlainTextElement(
+        label=PlainTextObject(text='First input'),
+        element=PlainTextInputElement(
             action_id=event_id + ".text1",
             placeholder='Type in here'
         )
@@ -205,19 +196,13 @@ def main(rqst):
     # -------------------------------------------------------------------------
 
     host_selector = view.add_block(InputBlock(
-        label='Next input selector ... start typing',
+        label=PlainTextObject(text='Next input selector ... start typing'),
         optional=True,
-        block_id=event_id + ".ext1"))
-
-    # -------------------------------------------------------------------------
-    # Create a menu-select using external source.  "Fake" the external
-    # source input data by returning static content ;-)
-    # -------------------------------------------------------------------------
-
-    host_selector.element = ExternalDataSelectElement(
-        placeholder='hosts ..',
-        action_id=event_id + ".ext1",
-    )
+        block_id=event_id + ".ext1",
+        element=ExternalDataSelectElement(
+                    placeholder='hosts ..',
+                    action_id=event_id + ".ext1",)
+        ))
 
     @app.ic.select.on(host_selector.element.action_id)
     def select_host_from_dynamic_list(_rqst):
@@ -233,7 +218,7 @@ def main(rqst):
     # -------------------------------------------------------------------------
 
     view.add_block(InputBlock(
-        label="Pick a date",
+        label=PlainTextObject(text="Pick a date"),
         element=DatePickerElement(
             action_id=event_id + ".datepicker",
             placeholder='A date'
@@ -245,7 +230,7 @@ def main(rqst):
     # -------------------------------------------------------------------------
 
     view.add_block(InputBlock(
-        label="Select one option",
+        label=PlainTextObject(text="Select one option"),
         optional=True,
         element=SelectElement(
             placeholder='Select one of ...',
@@ -263,9 +248,9 @@ def main(rqst):
     # -------------------------------------------------------------------------
 
     view.add_block(InputBlock(
-        label="Select many option",
-        element=MultiSelectElement(
-            placeholder='Select any of ...',
+        label=PlainTextObject(text="Select many option"),
+        element=StaticMultiSelectElement(
+            placeholder=PlainTextObject(text='Select any of ...'),
             action_id=event_id + ".select_N",
             options=[
                 Option(label='cat', value='cat'),
@@ -276,6 +261,7 @@ def main(rqst):
     ))
 
     res = modal.open(callback=on_main_modal_submit)
+
     if not res.get('ok'):
         app.log.error(json.dumps(res, indent=3))
 
@@ -285,7 +271,7 @@ def on_main_modal_submit(
     input_values: Dict
 ):
     params = session[SESSION_KEY]['params']
-    
+
     # The input_values is a dictionary of key=action_id and value=user-input
     # since all action_id are formulated with dots (.), just use the
     # last token as the variable name when form
@@ -301,15 +287,16 @@ def on_main_modal_submit(
     ))
 
     modal = Modal(rqst, view=View(
-        title='Modal Results',
-        close='Done',
+        type="modal",
+        title=PlainTextObject(text='Modal Results'),
+        close=PlainTextObject(text='Done'),
         clear_on_close=True,
         blocks=[
             SectionBlock(
-                text="Input results in raw JSON"
+                text=PlainTextObject(text="Input results in raw JSON")
             ),
             SectionBlock(
-                text="```" + json.dumps(results, indent=3) + "```"
+                text=MarkdownTextObject(text="```" + json.dumps(results, indent=3) + "```")
             )
         ]
     ))

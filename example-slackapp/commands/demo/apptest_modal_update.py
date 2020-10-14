@@ -13,14 +13,22 @@ from slack.web.classes.blocks import (
     SectionBlock
 )
 
+from slack.web.classes.objects import (
+    PlainTextObject, MarkdownTextObject
+)
+
 # -----------------------------------------------------------------------------
 # SlackAppTK Imports
 # -----------------------------------------------------------------------------
 
 from slackapptk.response import Response
+
 from slackapptk.request.any import AnyRequest
+
 from slackapptk.request.view import ViewRequest
+
 from slackapptk.request.command import CommandRequest
+
 from slackapptk.modal import Modal, View
 
 # -----------------------------------------------------------------------------
@@ -73,10 +81,12 @@ def main(rqst: AnyRequest):
     Modal(
         rqst, callback=on_main_modal_submit,
         view=View(
+            type="modal",
             title='First Modal View',
             callback_id=cmd.prog + ".view1",
-            close='Cacel',
-            submit='Next'
+            close='Cancel',
+            submit='Next',
+            blocks=[SectionBlock(text=MarkdownTextObject(text="This is the *first* modal view."))]
         )
     ).open()
 
@@ -90,11 +100,12 @@ def on_main_modal_submit(rqst: ViewRequest):
     modal = Modal(rqst)
 
     view = modal.view
-    view.title = 'Second Modal View'
+    view.title = PlainTextObject(text=('Second Modal View'))
+
     view.callback_id = cmd.prog + ".view2"
     modal.callback = on_view2_submit
 
-    view.add_block(SectionBlock(text="New bits."))
+    view.add_block(SectionBlock(text=MarkdownTextObject(text="This is the *second* modal view.")))
 
     return modal.update()
 
@@ -107,11 +118,10 @@ def on_view2_submit(rqst: ViewRequest):
     modal = Modal(rqst)
 
     view = modal.view
-    view.title = 'Final Modal View'
-    view.close = 'Done'
+    view.title = PlainTextObject(text='Final Modal View')
+    view.close = PlainTextObject(text='Done')
     view.submit = None
-    view.blocks.pop()
 
-    view.add_block(SectionBlock(text='Final bit.'))
+    view.add_block(SectionBlock(text=MarkdownTextObject(text='Final bit.')))
 
     return modal.update()

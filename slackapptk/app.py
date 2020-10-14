@@ -27,6 +27,7 @@ from inspect import signature
 from first import first
 import pyee
 
+from slack.web.classes import extract_json
 from slack.web.classes import objects as swc_objs
 
 # -----------------------------------------------------------------------------
@@ -126,7 +127,7 @@ class SlackApp(object):
         #   https://api.slack.com/reference/interaction-payloads
         #   https://api.slack.com/interactivity/handling#payloads
 
-        self._ic_hanlders = {
+        self._ic_handlers = {
 
             'block_actions': self._handle_block_action,
             'message_actions': self._handle_message_action,
@@ -211,7 +212,7 @@ class SlackApp(object):
 
         """
         p_type = rqst.rqst_data['type']
-        return self._ic_hanlders[p_type](rqst)
+        return self._ic_handlers[p_type](rqst)      # noqa
 
     def handle_select_request(
         self,
@@ -275,7 +276,7 @@ class SlackApp(object):
             self.log.error(emsg)
             raise SlackAppTKError(emsg, rqst, res_list)
 
-        return {res_type: swc_objs.extract_json(res_list)}
+        return {res_type: extract_json(res_list)}
 
     # -------------------------------------------------------------------------
     # PRIVATE Request handlers - per payload type

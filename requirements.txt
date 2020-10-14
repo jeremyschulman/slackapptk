@@ -1,4 +1,4 @@
 first
 pyee
-aiohttp<4.0
-slackclient==2.5
+aiohttp==3.6.3
+slackclient==2.9.2

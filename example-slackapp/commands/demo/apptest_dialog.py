@@ -14,7 +14,11 @@ import json
 # -----------------------------------------------------------------------------
 
 from slack.web.classes import (
-    extract_json, dialogs, blocks
+    dialogs, blocks
+)
+
+from slack.web.classes.objects import (
+    MarkdownTextObject
 )
 
 # -----------------------------------------------------------------------------
@@ -108,14 +112,14 @@ def on_dialog_submit(rqst: DialogRequest, submit):
 
     resp = Response(rqst)
 
-    resp['blocks'] = extract_json([
-        blocks.SectionBlock(text=f"""
+    resp['blocks'] = [
+        blocks.SectionBlock(text=MarkdownTextObject(text=f"""
 Your selections:\n
 *message*: {submit['message']}
-*signature*: {submit['signature']}\n            
+*signature*: {submit['signature']}\n
 *state* `value`: {rqst.state['value']} (hardcoded in demo)
-""")
-    ])
+""")).to_dict()
+    ]
 
     res = resp.send_response()
     # if res.status != 200:

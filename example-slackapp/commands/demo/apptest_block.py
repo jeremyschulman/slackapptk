@@ -27,6 +27,10 @@ from slack.web.classes.elements import (
     ButtonElement
 )
 
+from slack.web.classes.objects import (
+    MarkdownTextObject
+)
+
 # -----------------------------------------------------------------------------
 # SlackAppTK Imports
 # -----------------------------------------------------------------------------
@@ -81,7 +85,7 @@ def ui_main(rqst: InteractiveMessageRequest):
 def main(rqst: Union[InteractiveMessageRequest, CommandRequest]) -> None:
 
     block_id = cmd.prog + '.main.button'
-    
+
     # create a Slack message that will be used to respond to the User's
     # interaction which was the invocation of the /demo command.
 
@@ -109,9 +113,9 @@ def main(rqst: Union[InteractiveMessageRequest, CommandRequest]) -> None:
     # -------------------------------------------------------------------------
 
     user_id = rqst.user_id
-    
+
     resp['blocks'] = extract_json([
-        SectionBlock(text=f'Hi there <@{user_id}>!'),
+        SectionBlock(text=MarkdownTextObject(text=f'Hi there <@{user_id}>!')),
         DividerBlock(),
         ActionsBlock(
             block_id=block_id,
