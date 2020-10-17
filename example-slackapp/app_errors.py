@@ -22,7 +22,6 @@ __all__ = ['register_handlers']
 
 
 def on_401_unauthorized(exc):
-
     try:
         msg = exc.args[0]
         code = exc.args[1]
@@ -41,6 +40,7 @@ def on_401_unauthorized(exc):
 
 def on_slack_apierror(exc):
     errmsg = f"Error with call to api.slack.com: {str(exc)}"
+    slackapp.log.error(errmsg)
     msg = dict(blocks=[SectionBlock(text=MarkdownTextObject(text=f"```{errmsg}```")).to_dict()])
     return jsonify(msg)
 
@@ -49,6 +49,7 @@ def on_general_exception(exc):
     exc_info = sys.exc_info()
     tb_content = json.dumps(traceback.format_tb(exc_info[2]), indent=3)
     errmsg = f"Unexpected error: {str(exc)}:\n{tb_content}"
+    slackapp.log.critical(errmsg)
     msg = dict(blocks=[SectionBlock(text=MarkdownTextObject(text=f"```{errmsg}```")).to_dict()])
     return jsonify(msg)
 

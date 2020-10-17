@@ -25,9 +25,11 @@ VIEW_INPUT_TYPE_VALUE = {
     'multi_external_select': lambda e: [i['value'] for i in e.get('selected_options', {})],
     'multi_users_select': lambda e: e.get('selected_users'),
     'multi_conversations_select': lambda e: e.get('selected_conversations'),
-    'multi_channels_select': lambda e: e.get('selected_channel')
+    'multi_channels_select': lambda e: e.get('selected_channel'),
+    'checkboxes': lambda e: [i['value'] for i in e.get('selected_options', {})]
 }
 
 
 def get_input_value(ele):
-    return VIEW_INPUT_TYPE_VALUE[ele['type']](ele)
+    value_type = ele['type']
+    return VIEW_INPUT_TYPE_VALUE[value_type](ele)

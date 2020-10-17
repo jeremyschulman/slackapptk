@@ -261,7 +261,6 @@ def main(rqst):
     ))
 
     res = modal.open(callback=on_main_modal_submit)
-
     if not res.get('ok'):
         app.log.error(json.dumps(res, indent=3))
 
