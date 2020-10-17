@@ -282,8 +282,7 @@ def on_main_modal_submit(
     }
 
     results.update(dict(
-        clicks=params['clicks'],
-        checkboxes=params['checkboxes'],
+        clicks=params['clicks']
     ))
 
     modal = Modal(rqst, view=View(
