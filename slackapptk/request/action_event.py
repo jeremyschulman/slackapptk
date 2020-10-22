@@ -42,6 +42,27 @@ def BlockActionEvent(data) -> ActionEvent:
             ]
         )
 
+    elif a_type in ['channels_select', 'users_select', 'conversations_select']:
+        if a_type == 'channels_select':
+            a_val = data['selected_channel']
+        elif a_type == 'users_select':
+            a_val = data['selected_user']
+        elif a_type == 'conversations_select':
+            a_val = data['selected_conversation']
+
+        return ActionEvent(
+            type=a_type, data=data, id=a_id,
+            value=a_val
+        )
+
+    elif a_type in ['plain_text_input']:
+        a_val = data['value']
+
+        return ActionEvent(
+            type=a_type, data=data, id=a_id,
+            value=a_val
+        )
+
     raise SlackAppTKError(
         f"Unhangled BlockActionEvent type: {a_type}"
     )
